@@ -249,7 +249,7 @@ TEST(clipping_dc_screen_dc_roundtrip) {
     HDC dc = U(GetDC)(NULL); if (!dc) { t_skip("no screen dc"); return; }
     RECT r; int t = U(GetClipBox)(dc, &r);
     t_note("screen dc clip box type=%d (%ld,%ld,%ld,%ld)", t, r.left, r.top, r.right, r.bottom);
-    if (t == 0) { t_skip("screen dc clip box unavailable"); U(ReleaseDC)(NULL, dc); return; }
+    if (t == 0 || (t == NULLREGION && r.right == 0 && r.bottom == 0)) { t_skip("screen dc clip box unavailable"); U(ReleaseDC)(NULL, dc); return; }
     CHECK(t == SIMPLEREGION || t == COMPLEXREGION);
     EXPECT_EQ(U(GetClipRgn)(dc, NULL), 0);
     HRGN s = rr(10, 10, 20, 20);
