@@ -65,12 +65,13 @@ static unsigned to_px(const TCtx *c, int x, int y) {
     switch (c->bpp) {
     case 32: return ((const DWORD *)p)[x] & 0xffffff;
     case 24: return p[x * 3] | (p[x * 3 + 1] << 8) | (p[x * 3 + 2] << 16);
+    case 16: return ((const WORD *)p)[x] & 0x7fff; /* 555; top bit unused */
     case 8: return p[x];
     case 1: return (p[x >> 3] >> (7 - (x & 7))) & 1;
     }
     return 0;
 }
-static unsigned to_white(const TCtx *c) { return c->bpp == 1 ? 1 : c->bpp == 8 ? 255 : 0xffffff; }
+static unsigned to_white(const TCtx *c) { return c->bpp == 1 ? 1 : c->bpp == 8 ? 255 : c->bpp == 16 ? 0x7fff : 0xffffff; }
 static unsigned to_cref2px(COLORREF cr) { return ((cr & 0xff) << 16) | (cr & 0xff00) | ((cr >> 16) & 0xff); }
 /* bbox of pixels != bg; returns count */
 static int to_ink(const TCtx *c, unsigned bg, RECT *r) {
