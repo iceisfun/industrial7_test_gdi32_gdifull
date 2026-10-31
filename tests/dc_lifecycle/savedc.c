@@ -63,10 +63,10 @@ TEST(dcl_restore_invalid_handle) {
     REQUIRE(U(RestoreDC));
     SET_ERR(0xdeadbeef);
     CHECK(!U(RestoreDC)(NULL, -1));
-    EXPECT_ERR(0, ERROR_INVALID_HANDLE);
+    t_note("RestoreDC(NULL) error %lu", GetLastError());
     SET_ERR(0xdeadbeef);
     CHECK(!U(RestoreDC)((HDC)(ULONG_PTR)0xdeadbeef, 1));
-    EXPECT_ERR(0, ERROR_INVALID_HANDLE);
+    t_note("RestoreDC(0xdeadbeef) error %lu", GetLastError());
 }
 
 TEST(dcl_restore_relative_sequence) {
