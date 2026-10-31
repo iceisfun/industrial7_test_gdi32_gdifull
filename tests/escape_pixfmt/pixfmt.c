@@ -60,7 +60,7 @@ PF_BADDC(nulldc, NULL)
 PF_BADDC(bogusdc, EP_BOGUS_DC)
 PF_BADDC(bogusdc2, EP_BOGUS_DC2)
 PF_BADDC(minus1, (HDC)(LONG_PTR)-1)
-PF_BADDC(hwnd_as_dc, (HDC)(ULONG_PTR)GetDesktopWindow())
+PF_BADDC(highword_dc, (HDC)(ULONG_PTR)0x12340000)
 
 TEST(pixfmt_deleted_dc_all) {
     REQUIRE(U(ChoosePixelFormat));
@@ -641,4 +641,56 @@ TEST(pixfmt_repeated_choose_memdc_cycles) {
         ep_memdc_free(m, b, o);
     }
     CHECK(ep_gui() == before);
+}
+
+TEST(pixfmt_describe_reserved_and_layers) {
+    REQUIRE(U(DescribePixelFormat));
+    HWND w = pf_win(); HDC dc = U(GetDC)(w);
+    int n = pf_count(dc); if (n > 500) n = 500;
+    for (int i = 1; i <= n; i++) {
+        PIXELFORMATDESCRIPTOR p; memset(&p, 0xCC, sizeof p);
+        U(DescribePixelFormat)(dc, i, sizeof p, &p);
+        if (p.nSize != sizeof p) continue;
+        if (p.iLayerType != PFD_MAIN_PLANE) { CHECKF(0, "idx %d layer type %u", i, p.iLayerType); break; }
+        if (p.bReserved != 0 && p.bReserved != 0xCC) { /* overlay/underlay counts are legal */ }
+        if (p.iPixelType == PFD_TYPE_RGBA) {
+            if (p.cRedShift + p.cRedBits > 32 || p.cGreenShift + p.cGreenBits > 32 || p.cBlueShift + p.cBlueBits > 32) { CHECKF(0, "idx %d shifts out of range", i); break; }
+        }
+        if (p.cAccumBits < p.cAccumRedBits || p.cAccumBits < p.cAccumAlphaBits) { CHECKF(0, "idx %d accum %u < %u/%u", i, p.cAccumBits, p.cAccumRedBits, p.cAccumAlphaBits); break; }
+        if (p.cDepthBits > 32 || p.cStencilBits > 16) { CHECKF(0, "idx %d depth %u stencil %u", i, p.cDepthBits, p.cStencilBits); break; }
+    }
+    U(ReleaseDC)(w, dc); pf_win_free(w);
+}
+TEST(pixfmt_mem_dib32_generic_bitmap_format) {
+    REQUIRE(U(ChoosePixelFormat)); REQUIRE(U(SetPixelFormat)); REQUIRE(U(GetPixelFormat));
+    if (ep_is_wine()) { t_skip("wine: generic memory DC formats differ"); return; }
+    HBITMAP b, o; HDC m = ep_memdc32(16, 16, &b, &o, NULL);
+    CHECK(m != NULL);
+    if (m) {
+        PIXELFORMATDESCRIPTOR p; pf_fill(&p, PFD_DRAW_TO_BITMAP | PFD_SUPPORT_GDI | PFD_SUPPORT_OPENGL, 32, 24);
+        int f = U(ChoosePixelFormat)(m, &p);
+        CHECKF(f >= 1, "choose returned %d", f);
+        if (f >= 1) {
+            PIXELFORMATDESCRIPTOR q; memset(&q, 0, sizeof q);
+            CHECK(U(DescribePixelFormat)(m, f, sizeof q, &q) >= f);
+            CHECK(q.dwFlags & PFD_DRAW_TO_BITMAP);
+            CHECK(q.dwFlags & PFD_SUPPORT_GDI);
+            CHECK(U(GetPixelFormat)(m) == 0);
+            BOOL ok = U(SetPixelFormat)(m, f, &q);
+            CHECKF(ok, "SetPixelFormat on memory DC failed err %lu", GetLastError());
+            if (ok) CHECK(U(GetPixelFormat)(m) == f);
+        }
+        ep_memdc_free(m, b, o);
+    }
+}
+TEST(pixfmt_describe_null_buffer_with_nbytes_zero_on_memdc) {
+    REQUIRE(U(DescribePixelFormat));
+    HBITMAP b, o; HDC m = ep_memdc32(8, 8, &b, &o, NULL);
+    CHECK(m != NULL);
+    if (m) {
+        int a = U(DescribePixelFormat)(m, 1, 0, NULL);
+        int c = U(DescribePixelFormat)(m, 1, sizeof(PIXELFORMATDESCRIPTOR), NULL);
+        CHECKF(a == c, "nBytes 0: %d vs %d", a, c);
+        ep_memdc_free(m, b, o);
+    }
 }

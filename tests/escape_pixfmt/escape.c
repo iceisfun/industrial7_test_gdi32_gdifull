@@ -35,8 +35,11 @@ TEST(escape_queryesc_cbin_zero_valid_ptr) {
 TEST(escape_queryesc_uses_low_word_only) {
     REQUIRE(U(Escape));
     HDC d = ep_scr();
-    int q = 0x00010003; /* low word NEXTBAND, high word garbage */
+    int q = 0x00010003; /* low word NEXTBAND, high word garbage: answered by gdi32full for non-metafile DCs */
     int r = U(Escape)(d, QUERYESCSUPPORT, sizeof q, (LPCSTR)&q, NULL);
+    CHECKF(r == 1, "got %d", r);
+    q = 0x00010004; /* low word SETCOLORTABLE: unsupported */
+    r = U(Escape)(d, QUERYESCSUPPORT, sizeof q, (LPCSTR)&q, NULL);
     CHECKF(r == 0, "got %d", r);
     q = (int)0xFFFF0100; /* low word GETEXTENDEDTEXTMETRICS */
     r = U(Escape)(d, QUERYESCSUPPORT, sizeof q, (LPCSTR)&q, NULL);
@@ -238,7 +241,7 @@ TEST(escape_gdi_balance) {
 }
 
 /* ---- ExtEscape ---- */
-TEST(extescape_queryesc_getpairkerntable) {
+TEST(ep_extescape_queryesc_getpairkerntable) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr(), m = U(CreateCompatibleDC)(NULL);
     int q = GETPAIRKERNTABLE;
@@ -246,7 +249,7 @@ TEST(extescape_queryesc_getpairkerntable) {
     CHECK(U(ExtEscape)(m, QUERYESCSUPPORT, sizeof q, (LPCSTR)&q, 0, NULL) == 1);
     U(DeleteDC)(m); ep_scr_free(d);
 }
-TEST(extescape_queryesc_pairkern_on_bogus_dc) {
+TEST(ep_extescape_queryesc_pairkern_on_bogus_dc) {
     REQUIRE(U(ExtEscape));
     int q = GETPAIRKERNTABLE;
     HDC hs[3] = { NULL, EP_BOGUS_DC, EP_BOGUS_DC2 };
@@ -255,7 +258,7 @@ TEST(extescape_queryesc_pairkern_on_bogus_dc) {
         CHECKF(r == 1, "handle %p got %d", hs[i], r);
     }
 }
-TEST(extescape_unknown_id_screen) {
+TEST(ep_extescape_unknown_id_screen) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int in = 0x1234;
@@ -263,7 +266,7 @@ TEST(extescape_unknown_id_screen) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(extescape_unknown_id_mem) {
+TEST(ep_extescape_unknown_id_mem) {
     REQUIRE(U(ExtEscape));
     HDC m = U(CreateCompatibleDC)(NULL);
     int in = 0x1234;
@@ -271,7 +274,7 @@ TEST(extescape_unknown_id_mem) {
     CHECKF(r <= 0, "got %d", r);
     U(DeleteDC)(m);
 }
-TEST(extescape_queryesc_unknown_id) {
+TEST(ep_extescape_queryesc_unknown_id) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int q = 0x7777;
@@ -279,14 +282,14 @@ TEST(extescape_queryesc_unknown_id) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(extescape_null_in_nonzero_cb) {
+TEST(ep_extescape_null_in_nonzero_cb) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int r = U(ExtEscape)(d, 0x7777, 64, NULL, 0, NULL);
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(extescape_null_out_nonzero_cb) {
+TEST(ep_extescape_null_out_nonzero_cb) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int in = 1;
@@ -294,7 +297,7 @@ TEST(extescape_null_out_nonzero_cb) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(extescape_out_buffer_untouched_on_unsupported) {
+TEST(ep_extescape_out_buffer_untouched_on_unsupported) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     char out[32]; memset(out, 0xCC, sizeof out);
@@ -305,7 +308,7 @@ TEST(extescape_out_buffer_untouched_on_unsupported) {
     CHECK(same);
     ep_scr_free(d);
 }
-TEST(extescape_null_dc) {
+TEST(ep_extescape_null_dc) {
     REQUIRE(U(ExtEscape));
     int in = 1;
     SET_ERR(0);
@@ -313,7 +316,7 @@ TEST(extescape_null_dc) {
     CHECKF(r <= 0, "got %d", r);
     t_note("ExtEscape(NULL) -> %d err %lu", r, GetLastError());
 }
-TEST(extescape_bogus_dc) {
+TEST(ep_extescape_bogus_dc) {
     REQUIRE(U(ExtEscape));
     int in = 1;
     SET_ERR(0);
@@ -321,7 +324,7 @@ TEST(extescape_bogus_dc) {
     CHECKF(r <= 0, "got %d", r);
     t_note("ExtEscape(bogus) -> %d err %lu", r, GetLastError());
 }
-TEST(extescape_deleted_dc) {
+TEST(ep_extescape_deleted_dc) {
     REQUIRE(U(ExtEscape));
     HDC m = U(CreateCompatibleDC)(NULL);
     U(DeleteDC)(m);
@@ -329,7 +332,7 @@ TEST(extescape_deleted_dc) {
     int r = U(ExtEscape)(m, 0x7777, sizeof in, (LPCSTR)&in, 0, NULL);
     CHECKF(r <= 0, "got %d", r);
 }
-TEST(extescape_getextendedtextmetrics_note) {
+TEST(ep_extescape_getextendedtextmetrics_note) {
     REQUIRE(U(ExtEscape)); REQUIRE(U(SelectObject)); REQUIRE(U(GetStockObject));
     HDC m = U(CreateCompatibleDC)(NULL);
     HGDIOBJ old = U(SelectObject)(m, U(GetStockObject)(SYSTEM_FONT));
@@ -340,7 +343,7 @@ TEST(extescape_getextendedtextmetrics_note) {
     U(SelectObject)(m, old);
     U(DeleteDC)(m);
 }
-TEST(extescape_getpairkerntable_zero_note) {
+TEST(ep_extescape_getpairkerntable_zero_note) {
     REQUIRE(U(ExtEscape));
     HDC m = U(CreateCompatibleDC)(NULL);
     int r = U(ExtEscape)(m, GETPAIRKERNTABLE, 0, NULL, 0, NULL);
@@ -348,7 +351,7 @@ TEST(extescape_getpairkerntable_zero_note) {
     CHECK(r >= 0);
     U(DeleteDC)(m);
 }
-TEST(extescape_setcopycount_screen) {
+TEST(ep_extescape_setcopycount_screen) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int cnt = 3, outc = 0;
@@ -356,7 +359,7 @@ TEST(extescape_setcopycount_screen) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(extescape_negative_cb_note) {
+TEST(ep_extescape_negative_cb_note) {
     REQUIRE(U(ExtEscape));
     HDC d = ep_scr();
     int in = 1;
@@ -365,7 +368,7 @@ TEST(extescape_negative_cb_note) {
     CHECK(r <= 0);
     ep_scr_free(d);
 }
-TEST(extescape_gdi_balance) {
+TEST(ep_extescape_gdi_balance) {
     REQUIRE(U(ExtEscape)); REQUIRE(U(GetGuiResources));
     DWORD b = ep_gui();
     int q = GETPAIRKERNTABLE;
@@ -374,7 +377,7 @@ TEST(extescape_gdi_balance) {
 }
 
 /* ---- DrawEscape ---- */
-TEST(drawescape_null_dc) {
+TEST(ep_drawescape_null_dc) {
     REQUIRE(U(DrawEscape));
     int in = 1;
     SET_ERR(0);
@@ -382,7 +385,7 @@ TEST(drawescape_null_dc) {
     CHECKF(r == 0, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(drawescape_bogus_dc) {
+TEST(ep_drawescape_bogus_dc) {
     REQUIRE(U(DrawEscape));
     int in = 1;
     SET_ERR(0);
@@ -390,14 +393,14 @@ TEST(drawescape_bogus_dc) {
     CHECKF(r == 0, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(drawescape_bogus_dc2) {
+TEST(ep_drawescape_bogus_dc2) {
     REQUIRE(U(DrawEscape));
     SET_ERR(0);
     int r = U(DrawEscape)(EP_BOGUS_DC2, 1, 0, NULL);
     CHECKF(r == 0, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(drawescape_unsupported_screen) {
+TEST(ep_drawescape_unsupported_screen) {
     REQUIRE(U(DrawEscape));
     HDC d = ep_scr();
     int in = 1;
@@ -405,7 +408,7 @@ TEST(drawescape_unsupported_screen) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(drawescape_unsupported_mem) {
+TEST(ep_drawescape_unsupported_mem) {
     REQUIRE(U(DrawEscape));
     HDC m = U(CreateCompatibleDC)(NULL);
     int in = 1;
@@ -413,7 +416,7 @@ TEST(drawescape_unsupported_mem) {
     CHECKF(r <= 0, "got %d", r);
     U(DeleteDC)(m);
 }
-TEST(drawescape_queryesc_screen) {
+TEST(ep_drawescape_queryesc_screen) {
     REQUIRE(U(DrawEscape));
     HDC d = ep_scr();
     int q = 0x7777;
@@ -421,14 +424,14 @@ TEST(drawescape_queryesc_screen) {
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(drawescape_null_in_nonzero_cb) {
+TEST(ep_drawescape_null_in_nonzero_cb) {
     REQUIRE(U(DrawEscape));
     HDC d = ep_scr();
     int r = U(DrawEscape)(d, 0x7777, 16, NULL);
     CHECKF(r <= 0, "got %d", r);
     ep_scr_free(d);
 }
-TEST(drawescape_deleted_dc) {
+TEST(ep_drawescape_deleted_dc) {
     REQUIRE(U(DrawEscape));
     HDC m = U(CreateCompatibleDC)(NULL);
     U(DeleteDC)(m);
@@ -446,23 +449,23 @@ static void startdoc_null_dc_cb(DWORD cb) {
     CHECKF(r == -1, "cbSize %lu got %d", cb, r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-#define SD_CB(n, cb) TEST(startdoc_w_nulldc_cbsize_##n) { REQUIRE(U(StartDocW)); startdoc_null_dc_cb(cb); }
+#define SD_CB(n, cb) TEST(ep_startdoc_w_nulldc_cbsize_##n) { REQUIRE(U(StartDocW)); startdoc_null_dc_cb(cb); }
 SD_CB(0, 0) SD_CB(1, 1) SD_CB(8, 8) SD_CB(0x18, 0x18) SD_CB(0x20, 0x20) SD_CB(0x28, 0x28) SD_CB(0x30, 0x30) SD_CB(0xffff, 0xffff) SD_CB(max, 0xffffffffu)
-TEST(startdoc_w_null_dc_null_docinfo) {
+TEST(ep_startdoc_w_null_dc_null_docinfo) {
     REQUIRE(U(StartDocW));
     SET_ERR(0);
     int r = U(StartDocW)(NULL, NULL);
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(startdoc_a_null_dc_null_docinfo) {
+TEST(ep_startdoc_a_null_dc_null_docinfo) {
     REQUIRE(U(StartDocA));
     SET_ERR(0);
     int r = U(StartDocA)(NULL, NULL);
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(startdoc_w_bogus_dc) {
+TEST(ep_startdoc_w_bogus_dc) {
     REQUIRE(U(StartDocW));
     DOCINFOW di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = L"x";
     SET_ERR(0);
@@ -470,7 +473,7 @@ TEST(startdoc_w_bogus_dc) {
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(startdoc_a_bogus_dc) {
+TEST(ep_startdoc_a_bogus_dc) {
     REQUIRE(U(StartDocA));
     DOCINFOA di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = "x";
     SET_ERR(0);
@@ -478,7 +481,7 @@ TEST(startdoc_a_bogus_dc) {
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(startdoc_w_deleted_dc) {
+TEST(ep_startdoc_w_deleted_dc) {
     REQUIRE(U(StartDocW));
     HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m);
     DOCINFOW di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = L"x";
@@ -502,25 +505,25 @@ static void sda_len(int which, int len, int expect_exceed, HDC dc) {
     else CHECKF(e != ERROR_FILENAME_EXCED_RANGE, "len %d unexpected 206", len);
     HeapFree(GetProcessHeap(), 0, s);
 }
-#define SD_LEN(n, which, len, ex) TEST(startdoc_a_##n) { REQUIRE(U(StartDocA)); sda_len(which, len, ex, NULL); }
+#define SD_LEN(n, which, len, ex) TEST(ep_startdoc_a_##n) { REQUIRE(U(StartDocA)); sda_len(which, len, ex, NULL); }
 SD_LEN(docname_len0, 0, 0, 0) SD_LEN(docname_len1, 0, 1, 0) SD_LEN(docname_len100, 0, 100, 0) SD_LEN(docname_len258, 0, 258, 0) SD_LEN(docname_len259, 0, 259, 0)
 SD_LEN(docname_len260, 0, 260, 1) SD_LEN(docname_len261, 0, 261, 1) SD_LEN(docname_len1000, 0, 1000, 1) SD_LEN(docname_len20000, 0, 20000, 1)
 SD_LEN(output_len0, 1, 0, 0) SD_LEN(output_len259, 1, 259, 0) SD_LEN(output_len260, 1, 260, 1) SD_LEN(output_len261, 1, 261, 1) SD_LEN(output_len5000, 1, 5000, 1)
-TEST(startdoc_a_toolong_on_screen_dc) {
+TEST(ep_startdoc_a_toolong_on_screen_dc) {
     REQUIRE(U(StartDocA));
     HDC d = ep_scr();
     sda_len(0, 300, 1, d);
     sda_len(1, 300, 1, d);
     ep_scr_free(d);
 }
-TEST(startdoc_a_toolong_on_mem_dc) {
+TEST(ep_startdoc_a_toolong_on_mem_dc) {
     REQUIRE(U(StartDocA));
     HDC m = U(CreateCompatibleDC)(NULL);
     sda_len(0, 260, 1, m);
     sda_len(1, 260, 1, m);
     U(DeleteDC)(m);
 }
-TEST(startdoc_a_both_names_max_legal) {
+TEST(ep_startdoc_a_both_names_max_legal) {
     REQUIRE(U(StartDocA));
     char a[260], b[260]; memset(a, 'n', 259); a[259] = 0; memset(b, 'o', 259); b[259] = 0;
     DOCINFOA di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = a; di.lpszOutput = b;
@@ -529,7 +532,7 @@ TEST(startdoc_a_both_names_max_legal) {
     CHECK(r == -1);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(startdoc_a_docname_ok_output_toolong) {
+TEST(ep_startdoc_a_docname_ok_output_toolong) {
     REQUIRE(U(StartDocA));
     char b[300]; memset(b, 'o', 299); b[299] = 0;
     DOCINFOA di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = "ok"; di.lpszOutput = b;
@@ -538,7 +541,7 @@ TEST(startdoc_a_docname_ok_output_toolong) {
     CHECK(r == -1);
     EXPECT_ERR(r, ERROR_FILENAME_EXCED_RANGE);
 }
-TEST(startdoc_screen_dc_fails_w) {
+TEST(ep_startdoc_screen_dc_fails_w) {
     REQUIRE(U(StartDocW));
     HDC d = ep_scr();
     DOCINFOW di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = L"corpus doc";
@@ -549,7 +552,7 @@ TEST(startdoc_screen_dc_fails_w) {
     if (r > 0) U(AbortDoc)(d);
     ep_scr_free(d);
 }
-TEST(startdoc_screen_dc_fails_a) {
+TEST(ep_startdoc_screen_dc_fails_a) {
     REQUIRE(U(StartDocA));
     HDC d = ep_scr();
     DOCINFOA di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = "corpus doc";
@@ -559,7 +562,7 @@ TEST(startdoc_screen_dc_fails_a) {
     t_note("StartDocA(screen) -> %d err %lu", r, GetLastError());
     ep_scr_free(d);
 }
-TEST(startdoc_mem_dc_fails_w) {
+TEST(ep_startdoc_mem_dc_fails_w) {
     REQUIRE(U(StartDocW));
     HDC m = U(CreateCompatibleDC)(NULL);
     DOCINFOW di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = L"corpus doc";
@@ -568,14 +571,14 @@ TEST(startdoc_mem_dc_fails_w) {
     t_note("StartDocW(mem) -> %d err %lu", r, GetLastError());
     U(DeleteDC)(m);
 }
-TEST(startdoc_mem_dc_null_docinfo) {
+TEST(ep_startdoc_mem_dc_null_docinfo) {
     REQUIRE(U(StartDocW));
     HDC m = U(CreateCompatibleDC)(NULL);
     int r = U(StartDocW)(m, NULL);
     CHECKF(r <= 0, "got %d", r);
     U(DeleteDC)(m);
 }
-TEST(startdoc_mem_dc_dibsection) {
+TEST(ep_startdoc_mem_dc_dibsection) {
     REQUIRE(U(StartDocW)); REQUIRE(U(CreateDIBSection));
     HBITMAP b, o; HDC m = ep_memdc32(8, 8, &b, &o, NULL);
     CHECK(m != NULL);
@@ -586,7 +589,7 @@ TEST(startdoc_mem_dc_dibsection) {
         ep_memdc_free(m, b, o);
     }
 }
-TEST(startdoc_datatype_emf_null_dc) {
+TEST(ep_startdoc_datatype_emf_null_dc) {
     REQUIRE(U(StartDocA));
     DOCINFOA di; memset(&di, 0, sizeof di); di.cbSize = sizeof di; di.lpszDocName = "x"; di.lpszDatatype = "emf";
     SET_ERR(0);
@@ -600,80 +603,135 @@ TEST(startdoc_datatype_emf_null_dc) {
 
 /* ---- EndDoc / StartPage / EndPage / AbortDoc ---- */
 #define DOCFN_TESTS(fn) \
-TEST(fn##_null_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(NULL); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
-TEST(fn##_bogus_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
-TEST(fn##_bogus_dc2) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC2); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
-TEST(fn##_screen_dc) { REQUIRE(U(fn)); HDC d = ep_scr(); SET_ERR(0); int r = U(fn)(d); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); ep_scr_free(d); } \
-TEST(fn##_mem_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); U(DeleteDC)(m); } \
-TEST(fn##_deleted_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m); SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
-TEST(fn##_dibsection_dc) { REQUIRE(U(fn)); HBITMAP b, o; HDC m = ep_memdc32(4, 4, &b, &o, NULL); CHECK(m != NULL); if (m) { SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); ep_memdc_free(m, b, o); } }
+TEST(ep_##fn##_null_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(NULL); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
+TEST(ep_##fn##_bogus_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
+TEST(ep_##fn##_bogus_dc2) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC2); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
+TEST(ep_##fn##_screen_dc) { REQUIRE(U(fn)); HDC d = ep_scr(); SET_ERR(0); int r = U(fn)(d); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); ep_scr_free(d); } \
+TEST(ep_##fn##_mem_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); U(DeleteDC)(m); } \
+TEST(ep_##fn##_deleted_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m); SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); } \
+TEST(ep_##fn##_dibsection_dc) { REQUIRE(U(fn)); HBITMAP b, o; HDC m = ep_memdc32(4, 4, &b, &o, NULL); CHECK(m != NULL); if (m) { SET_ERR(0); int r = U(fn)(m); CHECKF(r == -1, "got %d", r); EXPECT_ERR(r, ERROR_INVALID_HANDLE); ep_memdc_free(m, b, o); } }
 DOCFN_TESTS(EndDoc)
 DOCFN_TESTS(StartPage)
 DOCFN_TESTS(AbortDoc)
 #define DOCFN_SOFT(fn) \
-TEST(fn##_null_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(NULL); CHECKF(r <= 0, "got %d", r); t_note(#fn "(NULL) err %lu", GetLastError()); } \
-TEST(fn##_bogus_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC); CHECKF(r <= 0, "got %d", r); } \
-TEST(fn##_screen_dc) { REQUIRE(U(fn)); HDC d = ep_scr(); SET_ERR(0); int r = U(fn)(d); CHECKF(r <= 0, "got %d", r); t_note(#fn "(screen) -> %d err %lu", r, GetLastError()); ep_scr_free(d); } \
-TEST(fn##_mem_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); int r = U(fn)(m); CHECKF(r <= 0, "got %d", r); U(DeleteDC)(m); } \
-TEST(fn##_deleted_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m); int r = U(fn)(m); CHECKF(r <= 0, "got %d", r); }
+TEST(ep_##fn##_null_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(NULL); CHECKF(r <= 0, "got %d", r); t_note(#fn "(NULL) err %lu", GetLastError()); } \
+TEST(ep_##fn##_bogus_dc) { REQUIRE(U(fn)); SET_ERR(0); int r = U(fn)(EP_BOGUS_DC); CHECKF(r <= 0, "got %d", r); } \
+TEST(ep_##fn##_screen_dc) { REQUIRE(U(fn)); HDC d = ep_scr(); SET_ERR(0); int r = U(fn)(d); CHECKF(r <= 0, "got %d", r); t_note(#fn "(screen) -> %d err %lu", r, GetLastError()); ep_scr_free(d); } \
+TEST(ep_##fn##_mem_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); int r = U(fn)(m); CHECKF(r <= 0, "got %d", r); U(DeleteDC)(m); } \
+TEST(ep_##fn##_deleted_dc) { REQUIRE(U(fn)); HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m); int r = U(fn)(m); CHECKF(r <= 0, "got %d", r); }
 DOCFN_SOFT(EndPage)
 
 /* ---- SetAbortProc ---- */
 static BOOL CALLBACK abortproc(HDC dc, int err) { return TRUE; }
-TEST(setabortproc_null_dc) {
+TEST(ep_setabortproc_null_dc) {
     REQUIRE(U(SetAbortProc));
     SET_ERR(0);
     int r = U(SetAbortProc)(NULL, abortproc);
     CHECKF(r == -1, "got %d", r);
     t_note("SetAbortProc(NULL) err %lu", GetLastError());
 }
-TEST(setabortproc_bogus_dc) {
+TEST(ep_setabortproc_bogus_dc) {
     REQUIRE(U(SetAbortProc));
     SET_ERR(0);
     int r = U(SetAbortProc)(EP_BOGUS_DC, abortproc);
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(setabortproc_bogus_dc_nullproc) {
+TEST(ep_setabortproc_bogus_dc_nullproc) {
     REQUIRE(U(SetAbortProc));
     SET_ERR(0);
     int r = U(SetAbortProc)(EP_BOGUS_DC2, NULL);
     CHECKF(r == -1, "got %d", r);
     EXPECT_ERR(r, ERROR_INVALID_HANDLE);
 }
-TEST(setabortproc_screen_dc) {
+TEST(ep_setabortproc_screen_dc) {
     REQUIRE(U(SetAbortProc));
     HDC d = ep_scr();
     CHECK(U(SetAbortProc)(d, abortproc) == -1);
     CHECK(U(SetAbortProc)(d, NULL) == -1);
     ep_scr_free(d);
 }
-TEST(setabortproc_mem_dc) {
+TEST(ep_setabortproc_mem_dc) {
     REQUIRE(U(SetAbortProc));
     HDC m = U(CreateCompatibleDC)(NULL);
     CHECK(U(SetAbortProc)(m, abortproc) == -1);
     CHECK(U(SetAbortProc)(m, NULL) == -1);
     U(DeleteDC)(m);
 }
-TEST(setabortproc_dibsection_dc) {
+TEST(ep_setabortproc_dibsection_dc) {
     REQUIRE(U(SetAbortProc));
     HBITMAP b, o; HDC m = ep_memdc32(4, 4, &b, &o, NULL);
     CHECK(m != NULL);
     if (m) { CHECK(U(SetAbortProc)(m, abortproc) == -1); ep_memdc_free(m, b, o); }
 }
-TEST(setabortproc_deleted_dc) {
+TEST(ep_setabortproc_deleted_dc) {
     REQUIRE(U(SetAbortProc));
     HDC m = U(CreateCompatibleDC)(NULL); U(DeleteDC)(m);
     SET_ERR(0);
     int r = U(SetAbortProc)(m, abortproc);
     CHECKF(r == -1, "got %d", r);
 }
-TEST(setabortproc_does_not_change_last_error_screen) {
+TEST(ep_setabortproc_does_not_change_last_error_screen) {
     REQUIRE(U(SetAbortProc));
     HDC d = ep_scr();
     SET_ERR(0x1234);
     U(SetAbortProc)(d, abortproc);
     DWORD e = GetLastError();
     t_note("last error after SetAbortProc(screen): %lu", e);
+    ep_scr_free(d);
+}
+
+/* ---- Escape on DCs without a local DC (display / memory): rejected before the id is looked at ---- */
+static void esc_nopldc(HDC dc, int id, const char *what) {
+    char buf[16]; memset(buf, 0, sizeof buf);
+    SET_ERR(0);
+    int r = U(Escape)(dc, id, 0, NULL, buf);
+    CHECKF(r == 0, "%s id 0x%x got %d", what, id, r);
+    EXPECT_ERR(r, ERROR_INVALID_HANDLE);
+}
+#define ESC_NOPLDC(n, id) \
+TEST(escape_nopldc_##n) { REQUIRE(U(Escape)); HDC d = ep_scr(), m = U(CreateCompatibleDC)(NULL); \
+    esc_nopldc(d, id, "screen"); esc_nopldc(m, id, "mem"); U(DeleteDC)(m); ep_scr_free(d); }
+ESC_NOPLDC(newframe, NEWFRAME) ESC_NOPLDC(abortdoc, ABORTDOC) ESC_NOPLDC(nextband, NEXTBAND) ESC_NOPLDC(enddoc, ENDDOC)
+ESC_NOPLDC(physpagesize, GETPHYSPAGESIZE) ESC_NOPLDC(printingoffset, GETPRINTINGOFFSET) ESC_NOPLDC(scalingfactor, GETSCALINGFACTOR)
+ESC_NOPLDC(unknown_4321, 0x4321) ESC_NOPLDC(unknown_5000, 0x5000) ESC_NOPLDC(id0, 0)
+TEST(escape_getcolortable_null_pout_note) {
+    REQUIRE(U(Escape));
+    HDC d = ep_scr();
+    short idx = 0;
+    SET_ERR(0);
+    int r = U(Escape)(d, GETCOLORTABLE, sizeof idx, (LPCSTR)&idx, NULL);
+    t_note("GETCOLORTABLE with NULL pOut -> %d err %lu", r, GetLastError());
+    CHECK(r == -1 || r >= 0);
+    ep_scr_free(d);
+}
+TEST(escape_queryesc_same_on_screen_and_mem) {
+    REQUIRE(U(Escape));
+    HDC d = ep_scr(), m = U(CreateCompatibleDC)(NULL);
+    int diff = 0;
+    for (int id = 0; id < 0x2100; id++) {
+        int a = U(Escape)(d, QUERYESCSUPPORT, sizeof id, (LPCSTR)&id, NULL);
+        int b = U(Escape)(m, QUERYESCSUPPORT, sizeof id, (LPCSTR)&id, NULL);
+        if (a != b) { diff++; if (diff < 6) t_note("QUERYESCSUPPORT %d differs: screen %d mem %d", id, a, b); }
+    }
+    CHECK(diff == 0 || diff > 0);
+    t_note("screen/mem QUERYESCSUPPORT differences: %d", diff);
+    U(DeleteDC)(m); ep_scr_free(d);
+}
+TEST(escape_queryesc_supported_set_exact) {
+    REQUIRE(U(Escape));
+    /* ids answered 1 inside gdi32full for any non-metafile DC; everything else below 0x2100 that is not
+       forwarded to the driver must be 0 */
+    static const int yes[] = { 1, 2, 3, 5, 8, 9, 10, 11, 12, 13, 14, 19, 0x100, 0xc01, 0x100e, 0x100f, 0x1010 };
+    static const int driver[] = { 0x11, 0x19, 0x25, 0x26, 0x2a, 0x202, 0x1000, 0x1001, 0x1002, 0x1013, 0x1014, 0x1015, 0x1016 };
+    HDC d = ep_scr();
+    for (int id = 0; id < 0x2100; id++) {
+        int isyes = 0, isdrv = 0;
+        for (unsigned k = 0; k < sizeof yes / sizeof yes[0]; k++) if (yes[k] == id) isyes = 1;
+        for (unsigned k = 0; k < sizeof driver / sizeof driver[0]; k++) if (driver[k] == id) isdrv = 1;
+        if (isdrv) continue;
+        int r = U(Escape)(d, QUERYESCSUPPORT, sizeof id, (LPCSTR)&id, NULL);
+        if (r != isyes) { CHECKF(0, "id 0x%x got %d want %d", id, r, isyes); break; }
+    }
     ep_scr_free(d);
 }
