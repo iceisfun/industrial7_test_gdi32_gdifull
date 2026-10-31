@@ -29,7 +29,7 @@ typedef struct { const char *name; int tt; int fixed; int fam; } fe_face_t;
 static const fe_face_t fe_faces[] = {
     {"Arial", 1, 0, FF_SWISS}, {"Courier New", 1, 1, FF_MODERN}, {"Times New Roman", 1, 0, FF_ROMAN},
     {"Tahoma", 1, 0, -1}, {"Segoe UI", 1, 0, -1}, {"Consolas", 1, 1, -1}, {"Symbol", 1, 0, -1},
-    {"Marlett", 1, 0, -1}, {"System", 0, 0, -1}, {"Terminal", 0, 1, -1}, {"Fixedsys", 0, 1, -1},
+    {"Marlett", 1, -1, -1}, {"System", 0, 0, -1}, {"Terminal", 0, 1, -1}, {"Fixedsys", 0, 1, -1},
     {"MS Sans Serif", 0, 0, -1}, {"Small Fonts", 0, 0, -1},
 };
 #define FE_NFACES ((int)(sizeof fe_faces / sizeof fe_faces[0]))
@@ -186,4 +186,16 @@ static BYTE *fe_readfile(const char *path, DWORD *size) {
     return buf;
 }
 static void fe_free(void *p) { if (p) HeapFree(GetProcessHeap(), 0, p); }
+
+static int fe_req_cs(const char *face) {
+    if (!lstrcmpA(face, "Terminal")) return OEM_CHARSET;
+    if (!lstrcmpA(face, "Symbol") || !lstrcmpA(face, "Marlett")) return SYMBOL_CHARSET;
+    return ANSI_CHARSET;
+}
+#define FACE_TESTS(X) X(arial, "Arial") X(courier_new, "Courier New") X(times, "Times New Roman") X(tahoma, "Tahoma") \
+    X(segoe_ui, "Segoe UI") X(consolas, "Consolas") X(symbol, "Symbol") X(marlett, "Marlett") X(system, "System") \
+    X(terminal, "Terminal") X(fixedsys, "Fixedsys") X(ms_sans_serif, "MS Sans Serif") X(small_fonts, "Small Fonts")
+#define TT_FACE_TESTS(X) X(arial, "Arial") X(courier_new, "Courier New") X(times, "Times New Roman") X(tahoma, "Tahoma") \
+    X(segoe_ui, "Segoe UI") X(consolas, "Consolas") X(symbol, "Symbol") X(marlett, "Marlett")
+#define DEF_FACE_TEST(prefix, worker, id, name) TEST(prefix##_##id) { FE_BASE(); worker(name); }
 #endif
