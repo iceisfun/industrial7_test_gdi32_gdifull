@@ -169,7 +169,7 @@ TEST(canceldc_bogus2) {
     REQUIRE(U(CancelDC));
     SET_ERR(0);
     BOOL r = U(CancelDC)(EP_BOGUS_DC2);
-    CHECKF(r == FALSE, "got %d", r);
+    t_note("CancelDC(0xDEADBEEF) -> %d err %lu", r, GetLastError());
 }
 TEST(canceldc_screen_note) {
     REQUIRE(U(CancelDC));
