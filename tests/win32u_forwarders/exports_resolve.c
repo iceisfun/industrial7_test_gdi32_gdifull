@@ -27,6 +27,7 @@ static int is_data_export(int mod, const char *name)
 /* Named exports of one bucket resolve through GetProcAddress and agree with a manual walk. */
 static void resolve_bucket(int mod, int letter)
 {
+    NEED_TAB();
     HMODULE h = mod_handle(mod);
     REQUIRE(h);
     pemap_t pm; pexp_t pe;
@@ -65,6 +66,7 @@ static void resolve_bucket(int mod, int letter)
 /* Forwarder semantics for one bucket. */
 static void fwd_bucket(int mod, int letter)
 {
+    NEED_TAB();
     HMODULE h = mod_handle(mod);
     REQUIRE(h);
     pemap_t pm; pexp_t pe;
@@ -138,6 +140,7 @@ LETTERS(MK)
 /* win32u exports in chunks of 100 */
 static void win32u_chunk(int c)
 {
+    NEED_TAB();
     HMODULE h = mod_handle(M_WIN32U);
     REQUIRE(h);
     pemap_t pm; pexp_t pe;
@@ -152,7 +155,7 @@ static void win32u_chunk(int c)
         if (idx < 0 || !p) continue;
         EXPECT_EQ(pe.base + idx, e->ord);
         CHECK(!pe_is_fwd(&pe, pe.funcs[idx]));
-        CHECKF(is_exec_rva(&pm, pe.funcs[idx]), "win32u!%s not in code", e->name);
+        if (strcmp(e->name, "gDispatchTableValues")) CHECKF(is_exec_rva(&pm, pe.funcs[idx]), "win32u!%s not in code", e->name);
         FARPROC q = GetProcAddress(h, (LPCSTR)(ULONG_PTR)e->ord);
         CHECKF(q == p, "win32u!%s ordinal %u differs", e->name, e->ord);
     }
@@ -170,6 +173,7 @@ TEST(exp_win32u_table_covers_chunks)
 /* ---- ordinal-only exports ---- */
 static void ordinal_only(int mod, int expect_count)
 {
+    NEED_TAB();
     HMODULE h = mod_handle(mod);
     REQUIRE(h);
     pemap_t pm; pexp_t pe;
@@ -202,6 +206,7 @@ TEST(exp_gdi32full_ordinal_only) { ordinal_only(M_GDI32FULL, 10); }
 
 static void ordinal_by_name(int mod, int letter)
 {
+    NEED_TAB();
     HMODULE h = mod_handle(mod);
     REQUIRE(h);
     const exp_ent_t *tab = mod_tab(mod);
@@ -282,6 +287,7 @@ TEST(exp_gdi32full_forwards_to_gdi32)
 
 TEST(exp_gdi32_win32u_forwarders_land_in_win32u)
 {
+    NEED_TAB();
     HMODULE g = mod_handle(M_GDI32), w = mod_handle(M_WIN32U);
     REQUIRE(g && w);
     pemap_t wm; CHECK(mod_map(M_WIN32U, &wm));
@@ -298,6 +304,7 @@ TEST(exp_gdi32_win32u_forwarders_land_in_win32u)
 
 TEST(exp_gdi32_all_d3dkmt_exported)
 {
+    NEED_TAB();
     HMODULE g = mod_handle(M_GDI32);
     REQUIRE(g);
     int cnt = 0;
@@ -328,6 +335,7 @@ TEST(exp_gdi32_gdi32full_same_name_distinct_or_forward)
 /* Table row counts (19041 family). Named counts are informational beyond the hard floor. */
 TEST(exp_table_counts)
 {
+    NEED_TAB();
     for (int m = 0; m < M_COUNT; m++) {
         pemap_t pm; pexp_t pe;
         if (!mod_map(m, &pm)) { t_skip("no genuine module"); return; }

@@ -166,6 +166,23 @@ static int is_wine(void)
     return GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
 }
 
+/* The embedded tables describe the Windows 10 19041 servicing family (19041..19045). */
+static int tab_ok(void)
+{
+    static int cached = -1;
+    if (cached < 0) {
+        OSVERSIONINFOW ov; memset(&ov, 0, sizeof ov); ov.dwOSVersionInfoSize = sizeof ov;
+        LONG (WINAPI *rtl)(OSVERSIONINFOW *) = (void *)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetVersion");
+        cached = 1;
+        if (rtl && rtl(&ov) == 0 && !getenv("FWD_ANY_BUILD") && (ov.dwMajorVersion != 10 || ov.dwBuildNumber < 19041 || ov.dwBuildNumber > 19045)) {
+            t_note("OS build %lu.%lu.%lu is outside the 19041 family the export tables describe", ov.dwMajorVersion, ov.dwMinorVersion, ov.dwBuildNumber);
+            cached = 0;
+        }
+    }
+    return cached;
+}
+#define NEED_TAB() do { if (!tab_ok()) { t_skip("export tables do not describe this build"); return; } } while (0)
+
 /* Letter bucket used for chunked tests: 'A'..'Z' for names, '_' otherwise. */
 static int name_bucket(const char *n)
 {
