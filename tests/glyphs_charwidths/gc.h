@@ -97,7 +97,7 @@ static void gc_close(GC *g)
 
 static int gc_gdicount(void)
 {
-    if (!U(GetGuiResources)) return -1;
+    if (!U(GetGuiResources) || gc_wine()) return -1; /* wine stub misbehaves */
     return (int)U(GetGuiResources)(GetCurrentProcess(), 0 /* GR_GDIOBJECTS */);
 }
 
