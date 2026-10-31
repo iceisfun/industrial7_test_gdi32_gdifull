@@ -128,7 +128,8 @@ TEST(text_output_textout_count_beyond_string_a) {
     NEED_TEXT();
     TCtx c; if (!to_open(&c, 128, 32, 32)) { CHECK(0); return; }
     to_use_font(&c, (HFONT)U(GetStockObject)(SYSTEM_FIXED_FONT), 0);
-    TEXTMETRICA tm; if (!to_fixed(c.dc, &tm)) { t_skip("no fixed font"); to_close(&c); return; }
+    TEXTMETRICA tm; if (!to_fixed(c.dc, &tm) && !to_wine()) { t_skip("no fixed font"); to_close(&c); return; }
+    if (to_wine()) U(GetTextMetricsA)(c.dc, &tm);
     char buf[8] = { 'a', 'b', 0, 'c', 'd', 0, 0, 0 };
     SIZE s2, s5;
     CHECK(U(GetTextExtentPoint32A)(c.dc, buf, 2, &s2));
@@ -365,7 +366,8 @@ TEST(text_output_polytextout_draws_both_strings) {
     NEED_TEXT(); REQUIRE(U(PolyTextOutW)); REQUIRE(U(PolyTextOutA));
     TCtx c; if (!to_open(&c, 128, 64, 32)) { CHECK(0); return; }
     to_use_font(&c, (HFONT)U(GetStockObject)(SYSTEM_FIXED_FONT), 0);
-    TEXTMETRICA tm; if (!to_fixed(c.dc, &tm)) { t_skip("no fixed font"); to_close(&c); return; }
+    TEXTMETRICA tm; if (!to_fixed(c.dc, &tm) && !to_wine()) { t_skip("no fixed font"); to_close(&c); return; }
+    if (to_wine()) U(GetTextMetricsA)(c.dc, &tm);
     U(SetTextColor)(c.dc, RGB(0, 0, 0));
     POLYTEXTW pt[2]; memset(pt, 0, sizeof pt);
     pt[0].x = 4; pt[0].y = 2; pt[0].lpstr = L"HH"; pt[0].n = 2;

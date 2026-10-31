@@ -102,6 +102,21 @@ static int to_fixed(HDC dc, TEXTMETRICA *tm) {
     if (tm->tmMaxCharWidth != tm->tmAveCharWidth) return 0;
     return 1;
 }
+/* open ctx with a fixed-pitch font: the stock bitmap font on Windows; under an emulator lacking
+ * bitmap fonts a fixed TrueType face is substituted so the logic can still be exercised. */
+static int to_fixed_ctx(TCtx *c, TEXTMETRICA *tm, int stock, int w, int h) {
+    if (!to_open(c, w, h, 32)) { CHECK(0); return 0; }
+    to_use_font(c, (HFONT)U(GetStockObject)(stock), 0);
+    if (to_fixed(c->dc, tm)) return 1;
+    if (to_wine()) {
+        to_use_font(c, to_mkfont("Courier New", -16, FW_NORMAL, 0, NONANTIALIASED_QUALITY), 1);
+        memset(tm, 0, sizeof *tm);
+        if (U(GetTextMetricsA)(c->dc, tm) && !(tm->tmPitchAndFamily & TMPF_FIXED_PITCH) && tm->tmOverhang == 0) return 1;
+    }
+    t_skip("stock font %d is not a fixed bitmap font here", stock);
+    to_close(c);
+    return 0;
+}
 static int to_gdi_count(void) {
     DWORD (WINAPI *g)(HANDLE, DWORD) = (void *)t_proc("GetGuiResources");
     return g ? (int)g(GetCurrentProcess(), 0) : -1;
