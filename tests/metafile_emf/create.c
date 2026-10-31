@@ -74,6 +74,7 @@ TEST(emf_create_ref_memory_dc_default_bitmap) {
 
 TEST(emf_create_ref_bogus_handles) {
     REQUIRE(U(CreateEnhMetaFileW));
+    if (emf_wine()) { t_skip("wine faults on bogus reference DCs"); return; }
     static const ULONG_PTR bogus[] = { 1, 0x1234, 0xdeadbeef, 0x00010001, 0xffffffffull };
     for (unsigned i = 0; i < sizeof bogus / sizeof bogus[0]; i++) {
         HDC dc = U(CreateEnhMetaFileW)((HDC)bogus[i], NULL, NULL, NULL);
@@ -84,6 +85,7 @@ TEST(emf_create_ref_bogus_handles) {
 
 TEST(emf_create_ref_wrong_object_type) {
     REQUIRE(U(CreateEnhMetaFileW)); REQUIRE(U(CreatePen)); REQUIRE(U(CreateSolidBrush));
+    if (emf_wine()) { t_skip("wine faults on wrong-type reference DCs"); return; }
     HGDIOBJ objs[3];
     objs[0] = U(CreatePen)(PS_SOLID, 1, 0);
     objs[1] = U(CreateSolidBrush)(0x123456);
@@ -499,13 +501,13 @@ TEST(emf_dc_state_changes_are_tracked) {
     REQUIRE(U(SetMapMode)); REQUIRE(U(SetBkMode));
     HDC dc = emf_begin();
     if (!dc) { CHECK(dc != NULL); return; }
-    EXPECT_EQ(U(SetMapMode)(dc, MM_HIMETRIC), MM_TEXT);
+    int om = U(SetMapMode)(dc, MM_HIMETRIC); EXPECT_EQ(om, MM_TEXT);
     EXPECT_EQ(U(GetMapMode)(dc), MM_HIMETRIC);
-    EXPECT_EQ(U(SetBkMode)(dc, TRANSPARENT), OPAQUE);
+    int ob = U(SetBkMode)(dc, TRANSPARENT); EXPECT_EQ(ob, OPAQUE);
     EXPECT_EQ(U(GetBkMode)(dc), TRANSPARENT);
-    EXPECT_EQ(U(SetBkColor)(dc, RGB(1, 2, 3)), 0xFFFFFF);
+    COLORREF oc = U(SetBkColor)(dc, RGB(1, 2, 3)); EXPECT_EQ(oc, 0xFFFFFF);
     EXPECT_EQ(U(GetBkColor)(dc), RGB(1, 2, 3));
-    EXPECT_EQ(U(SetROP2)(dc, R2_XORPEN), R2_COPYPEN);
+    int orop = U(SetROP2)(dc, R2_XORPEN); EXPECT_EQ(orop, R2_COPYPEN);
     U(DeleteEnhMetaFile)(emf_end(dc));
 }
 

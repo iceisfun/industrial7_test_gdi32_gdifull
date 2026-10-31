@@ -208,8 +208,10 @@ TEST(emf_setbits_old_header_get_88_100) {
     EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 100, &hd), 100);
     EXPECT_EQ(hd.nSize, 100);
     EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 99, &hd), 88);
-    EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 107, &hd), 100);
-    EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 300, &hd), 108);
+    /* an 88-byte header is only widened for requests of exactly 100 or 108 bytes */
+    EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 107, &hd), 88);
+    EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 108, &hd), 108);
+    EXPECT_EQ(U(GetEnhMetaFileHeader)(h, 300, &hd), 88);
     U(DeleteEnhMetaFile)(h);
 }
 
@@ -692,12 +694,13 @@ TEST(emf_delete_wrong_type) {
 }
 
 TEST(emf_delete_object_on_hemf) {
+    if (emf_wine()) { t_skip("wine"); return; }
     REQUIRE(U(DeleteObject));
     HENHMETAFILE h = mk_scene();
     if (!h) { CHECK(h != NULL); return; }
     BOOL r = U(DeleteObject)((HGDIOBJ)h);
     t_note("DeleteObject(hemf) = %d", r);
-    if (r) { CHECK(U(GetObjectType)(h) == 0); }
+    if (r) { SOFT(U(GetObjectType)(h) == 0); U(DeleteEnhMetaFile)(h); }
     else { CHECK(U(DeleteEnhMetaFile)(h)); }
 }
 

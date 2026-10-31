@@ -56,6 +56,7 @@ static void emf_dib_free(emf_dib *d) {
 }
 static DWORD emf_px(const emf_dib *d, int x, int y) { return d->bits[y * d->w + x] & 0xFFFFFF; }
 static void emf_dib_fill(emf_dib *d, DWORD v) { for (int i = 0; i < d->w * d->h; i++) d->bits[i] = v; }
+#define WHITE 0xFFFFFF
 #define BGR(r,g,b) ((DWORD)(((b) << 0) | ((g) << 8) | ((r) << 16)))   /* 0xRRGGBB as stored by a 32bpp DIB */
 
 /* ---- record log via EnumEnhMetaFile ---- */

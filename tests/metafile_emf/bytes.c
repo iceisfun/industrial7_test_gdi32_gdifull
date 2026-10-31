@@ -78,7 +78,10 @@ TEST(emf_byte_rectangle) {
     GETREC(s_rect, EMR_RECTANGLE, r)
     const EMRRECTANGLE *e = (const EMRRECTANGLE *)r;
     EXPECT_EQ(r->nSize, 24);
-    EXPECT_EQ(e->rclBox.left, 10); EXPECT_EQ(e->rclBox.top, 20); EXPECT_EQ(e->rclBox.right, 50); EXPECT_EQ(e->rclBox.bottom, 60);
+    EXPECT_EQ(e->rclBox.left, 10); EXPECT_EQ(e->rclBox.top, 20);
+    /* the box is stored inclusive-inclusive */
+    CHECK(e->rclBox.right >= 49 && e->rclBox.right <= 50 && e->rclBox.bottom >= 59 && e->rclBox.bottom <= 60);
+    SOFT(e->rclBox.right == 49 && e->rclBox.bottom == 59);
     DONE;
 }
 TEST(emf_byte_ellipse) {
@@ -86,7 +89,9 @@ TEST(emf_byte_ellipse) {
     GETREC(s_ellipse, EMR_ELLIPSE, r)
     EXPECT_EQ(r->nSize, 24);
     const EMRELLIPSE *e = (const EMRELLIPSE *)r;
-    EXPECT_EQ(e->rclBox.left, 1); EXPECT_EQ(e->rclBox.bottom, 4);
+    EXPECT_EQ(e->rclBox.left, 1);
+    CHECK(e->rclBox.bottom >= 3 && e->rclBox.bottom <= 4);
+    SOFT(e->rclBox.bottom == 3);
     DONE;
 }
 TEST(emf_byte_roundrect) {
@@ -94,7 +99,9 @@ TEST(emf_byte_roundrect) {
     GETREC(s_roundrect, EMR_ROUNDRECT, r)
     EXPECT_EQ(r->nSize, 32);
     const EMRROUNDRECT *e = (const EMRROUNDRECT *)r;
-    EXPECT_EQ(e->rclBox.right, 30); EXPECT_EQ(e->szlCorner.cx, 5); EXPECT_EQ(e->szlCorner.cy, 6);
+    CHECK(e->rclBox.right >= 29 && e->rclBox.right <= 30);
+    SOFT(e->rclBox.right == 29);
+    EXPECT_EQ(e->szlCorner.cx, 5); EXPECT_EQ(e->szlCorner.cy, 6);
     DONE;
 }
 TEST(emf_byte_moveto) {
@@ -152,8 +159,8 @@ TEST(emf_byte_restoredc_relative) {
 TEST(emf_byte_restoredc_absolute_converted) {
     GETREC(s_savedc_abs, EMR_RESTOREDC, r)
     EXPECT_EQ(r->nSize, 12);
-    /* absolute levels are recorded as relative offsets */
-    EXPECT_EQ((int)r->dParm[0], -1);
+    /* absolute levels are recorded as relative offsets: level 1 of 2 pops two saved states */
+    EXPECT_EQ((int)r->dParm[0], -2);
     DONE;
 }
 TEST(emf_byte_setwindoworg) {

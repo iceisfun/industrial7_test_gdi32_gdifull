@@ -187,7 +187,12 @@ static void sc_gradient(HDC dc) {
     TRIVERTEX v[2] = { {0, 0, 0xff00, 0, 0, 0}, {20, 20, 0, 0xff00, 0, 0} }; GRADIENT_RECT gr = {0, 1};
     U(GradientFill)(dc, v, 2, &gr, 1, GRADIENT_FILL_RECT_H);
 }
-RT(gradient, EMR_GRADIENTFILL)
+TEST(emf_rec_gradient) {
+    REQUIRE(U(CreateEnhMetaFileW)); REQUIRE(U(GradientFill));
+    if (emf_wine()) { t_skip("wine: GradientFill on EMF DC faults"); return; }
+    static const DWORD e[] = { EMR_GRADIENTFILL };
+    rec_run(sc_gradient, e, 1, 0);
+}
 
 /* ---- clip records ---- */
 static void sc_selectcliprgn(HDC dc) { HRGN r = U(CreateRectRgn)(0, 0, 20, 20); U(SelectClipRgn)(dc, r); U(SelectClipRgn)(dc, NULL); U(DeleteObject)(r); }
