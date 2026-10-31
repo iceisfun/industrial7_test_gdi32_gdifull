@@ -77,7 +77,11 @@ static int rg_grid_eq(const RgGrid *a, const RgGrid *b) { return !memcmp(a, b, s
 static int rg_grid_bbox(const RgGrid *g, RECT *rc) {
     int l = RG_N, t = RG_N, r = -1, b = -1;
     for (int y = 0; y < RG_N; y++) for (int x = 0; x < RG_N; x++) if (g->c[y][x]) {
-        if (x < l) l = x; if (x > r) r = x; if (y < t) t = y; if (y > b) b = y; }
+        if (x < l) l = x;
+        if (x > r) r = x;
+        if (y < t) t = y;
+        if (y > b) b = y;
+    }
     if (r < 0) { memset(rc, 0, sizeof *rc); return 0; }
     rc->left = l; rc->top = t; rc->right = r + 1; rc->bottom = b + 1; return 1;
 }
