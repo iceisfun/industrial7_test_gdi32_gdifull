@@ -118,7 +118,7 @@ static HGDIOBJ os_make(int kind) {
     case OS_K_FONT: return os_font("Arial", -12);
     case OS_K_PAL: return os_pal(8);
     case OS_K_RGN: return os_rgn();
-    case OS_K_DDB: return U(CreateBitmap) ? U(CreateBitmap)(5, 4, 1, 8, NULL) : NULL;
+    case OS_K_DDB: return U(CreateBitmap) ? U(CreateBitmap)(5, 4, 1, 1, NULL) : NULL;
     case OS_K_DIB: return os_dib(NULL, 4, 4, 32, NULL);
     case OS_K_MEMDC: return os_memdc();
     }
