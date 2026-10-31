@@ -217,7 +217,14 @@ TEST(text_output_char_extra_return_values) {
     CHECK(U(SetTextCharacterExtra)(c.dc, 7) == 3);
     CHECK(U(SetTextCharacterExtra)(c.dc, -4) == 7);
     CHECK(U(SetTextCharacterExtra)(c.dc, 0) == -4);
+    SetLastError(0);
     CHECK(U(SetTextCharacterExtra)(NULL, 3) == (int)0x80000000);
+    CHECK(GetLastError() == ERROR_INVALID_PARAMETER);
+    /* INT_MIN is not an acceptable extra value even on a valid DC */
+    SetLastError(0);
+    CHECK(U(SetTextCharacterExtra)(c.dc, (int)0x80000000) == (int)0x80000000);
+    CHECK(GetLastError() == ERROR_INVALID_PARAMETER);
+    CHECK(U(GetTextCharacterExtra)(c.dc) == 0);
     CHECK(U(GetTextCharacterExtra)(NULL) == (int)0x80000000);
     CHECK(U(SetTextCharacterExtra)((HDC)(ULONG_PTR)0x1234, 3) == (int)0x80000000);
     to_close(&c);
@@ -273,8 +280,10 @@ TEST(text_output_justification_bogus_dc) {
 TEST(text_output_justification_zero_breaks_nonzero_extra) {
     NEED_EXT(); REQUIRE(U(SetTextJustification));
     TCtx c; if (!to_open(&c, 32, 32, 32)) { CHECK(0); return; }
-    BOOL r = U(SetTextJustification)(c.dc, 10, 0);
-    t_note("SetTextJustification(10, 0) -> %d", r);
+    /* the values are stored unvalidated */
+    CHECK(U(SetTextJustification)(c.dc, 10, 0) == TRUE);
+    CHECK(U(SetTextJustification)(c.dc, -10, 3) == TRUE);
+    CHECK(U(SetTextJustification)(c.dc, 10, -1) == TRUE);
     CHECK(U(SetTextJustification)(c.dc, 0, 0));
     to_close(&c);
 }
