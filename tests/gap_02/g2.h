@@ -27,6 +27,10 @@ static FARPROC g2_impl(const char *impl, const char *pub) {
 }
 #define IMPL(base) ((__typeof__(&base))g2_impl(#base "Impl", #base))
 
+/* single-evaluation EXPECT_EQ (the harness macro evaluates its arguments twice, which breaks calls with side effects) */
+#define G2_EQ(a, b) do { ULONG_PTR a_ = (ULONG_PTR)(a), b_ = (ULONG_PTR)(b); \
+    t_check(a_ == b_, __FILE__, __LINE__, #a " == " #b, "got 0x%llx want 0x%llx", (unsigned long long)a_, (unsigned long long)b_); } while (0)
+
 #define PTR(x) ((void *)(ULONG_PTR)(x))
 
 /* A 32bpp top-down DIB section selected into a memory DC. */

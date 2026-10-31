@@ -46,20 +46,20 @@ static void widen(const char *s, WCHAR *w, int n) { MultiByteToWideChar(CP_ACP, 
 TEST(gap2_aft_missing_file) {
     NEED_AFT();
     SetLastError(0);
-    EXPECT_EQ(aft()("C:\\no\\such\\dir\\gap2_missing.ttf", 0), 0);
+    G2_EQ(aft()("C:\\no\\such\\dir\\gap2_missing.ttf", 0), 0);
     t_note("missing file last error %lu", GetLastError());
 }
 TEST(gap2_aft_empty_string) {
     NEED_AFT();
-    EXPECT_EQ(aft()("", 0), 0);
+    G2_EQ(aft()("", 0), 0);
 }
 TEST(gap2_aft_directory) {
     NEED_AFT();
     char d[MAX_PATH];
     if (!fonts_dir(d, sizeof d)) { t_skip("no windows dir"); return; }
-    EXPECT_EQ(aft()(d, 0), 0);
+    G2_EQ(aft()(d, 0), 0);
     d[strlen(d) - 1] = 0;
-    EXPECT_EQ(aft()(d, 0), 0);
+    G2_EQ(aft()(d, 0), 0);
 }
 TEST(gap2_aft_not_a_font_file) {
     NEED_AFT();
@@ -69,7 +69,7 @@ TEST(gap2_aft_not_a_font_file) {
     HANDLE h = CreateFileA(p, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) { t_skip("cannot write temp file"); return; }
     DWORD w; WriteFile(h, "this is not a font file", 23, &w, NULL); CloseHandle(h);
-    EXPECT_EQ(aft()(p, 0), 0);
+    G2_EQ(aft()(p, 0), 0);
     DeleteFileA(p);
 }
 TEST(gap2_aft_zero_length_file) {
@@ -80,7 +80,7 @@ TEST(gap2_aft_zero_length_file) {
     HANDLE h = CreateFileA(p, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) { t_skip("cannot write temp file"); return; }
     CloseHandle(h);
-    EXPECT_EQ(aft()(p, 0), 0);
+    G2_EQ(aft()(p, 0), 0);
     DeleteFileA(p);
 }
 TEST(gap2_aft_system_font_add_remove) {
@@ -209,35 +209,35 @@ TEST(gap2_aft_max_path_length_name) {
     NEED_AFT();
     char p[MAX_PATH + 1];
     memset(p, 'a', 250); strcpy(p + 250, ".ttf");
-    EXPECT_EQ(aft()(p, 0), 0);
+    G2_EQ(aft()(p, 0), 0);
     char q[MAX_PATH + 1];
     strcpy(q, "C:\\");
     memset(q + 3, 'b', 200); strcpy(q + 203, ".ttf");
-    EXPECT_EQ(aft()(q, 0), 0);
+    G2_EQ(aft()(q, 0), 0);
 }
 TEST(gap2_aft_one_char_names) {
     NEED_AFT();
-    EXPECT_EQ(aft()("x", 0), 0);
-    EXPECT_EQ(aft()("\\", 0), 0);
-    EXPECT_EQ(aft()(".", 0), 0);
-    EXPECT_EQ(aft()("..", 0), 0);
+    G2_EQ(aft()("x", 0), 0);
+    G2_EQ(aft()("\\", 0), 0);
+    G2_EQ(aft()(".", 0), 0);
+    G2_EQ(aft()("..", 0), 0);
 }
 TEST(gap2_aft_invalid_characters) {
     NEED_AFT();
     SKIP_ON_WINE("wine chokes on wildcard characters");
-    EXPECT_EQ(aft()("C:\\bad|name?.ttf", 0), 0);
-    EXPECT_EQ(aft()("C:\\bad<name>.ttf", 0), 0);
+    G2_EQ(aft()("C:\\bad|name?.ttf", 0), 0);
+    G2_EQ(aft()("C:\\bad<name>.ttf", 0), 0);
 }
 
 /* ------------------------------ AddFontResourceWImpl ------------------------------ */
 #define NEED_AFW() do { REQUIRE(afw()); REQUIRE(U(RemoveFontResourceW)); } while (0)
 TEST(gap2_afw_missing_file) {
     NEED_AFW();
-    EXPECT_EQ(afw()(L"C:\\no\\such\\dir\\gap2_missing.ttf"), 0);
+    G2_EQ(afw()(L"C:\\no\\such\\dir\\gap2_missing.ttf"), 0);
 }
 TEST(gap2_afw_empty_string) {
     NEED_AFW();
-    EXPECT_EQ(afw()(L""), 0);
+    G2_EQ(afw()(L""), 0);
 }
 TEST(gap2_afw_system_font_add_remove) {
     NEED_AFW();
@@ -272,13 +272,13 @@ TEST(gap2_afw_not_a_font_file) {
     BYTE junk[512]; memset(junk, 0x5A, sizeof junk);
     DWORD wr; WriteFile(h, junk, sizeof junk, &wr, NULL); CloseHandle(h);
     widen(p, w, MAX_PATH);
-    EXPECT_EQ(afw()(w), 0);
+    G2_EQ(afw()(w), 0);
     DeleteFileA(p);
 }
 TEST(gap2_afw_unicode_name_missing) {
     NEED_AFW();
     static const WCHAR n[] = { 'C', ':', '\\', 0x4e2d, 0x6587, '.', 't', 't', 'f', 0 };
-    EXPECT_EQ(afw()(n), 0);
+    G2_EQ(afw()(n), 0);
 }
 TEST(gap2_afw_added_font_enumerable) {
     NEED_AFW(); REQUIRE(U(EnumFontFamiliesExW)); REQUIRE(U(CreateCompatibleDC));
@@ -317,7 +317,7 @@ TEST(gap2_cfi_basic) {
     LOGFONTW lf; lf_init(&lf, L"Arial", -16);
     HFONT f = cfi()(&lf);
     CHECK(f != NULL);
-    EXPECT_EQ(U(GetObjectType)(f), OBJ_FONT);
+    G2_EQ(U(GetObjectType)(f), OBJ_FONT);
     CHECK(U(DeleteObject)(f));
 }
 TEST(gap2_cfi_zeroed_logfont) {
@@ -326,7 +326,7 @@ TEST(gap2_cfi_zeroed_logfont) {
     HFONT f = cfi()(&lf);
     CHECK(f != NULL);
     LOGFONTW o; memset(&o, 0x55, sizeof o);
-    EXPECT_EQ(U(GetObjectW)(f, sizeof o, &o), sizeof(LOGFONTW));
+    G2_EQ(U(GetObjectW)(f, sizeof o, &o), sizeof(LOGFONTW));
     CHECK(o.lfHeight == 0 && o.lfWidth == 0 && o.lfWeight == 0 && o.lfFaceName[0] == 0);
     U(DeleteObject)(f);
 }
@@ -490,9 +490,9 @@ TEST(gap2_cfi_getobject_size_variants) {
     HFONT f = cfi()(&lf);
     CHECK(f != NULL); if (!f) return;
     LOGFONTW o;
-    EXPECT_EQ(U(GetObjectW)(f, 0, NULL), sizeof(LOGFONTW));   /* size query */
-    EXPECT_EQ(U(GetObjectW)(f, sizeof o, &o), sizeof(LOGFONTW));
-    EXPECT_EQ(U(GetObjectW)(f, sizeof o + 100, &o), sizeof(LOGFONTW));
+    G2_EQ(U(GetObjectW)(f, 0, NULL), sizeof(LOGFONTW));   /* size query */
+    G2_EQ(U(GetObjectW)(f, sizeof o, &o), sizeof(LOGFONTW));
+    G2_EQ(U(GetObjectW)(f, sizeof o + 100, &o), sizeof(LOGFONTW));
     int r = U(GetObjectW)(f, 20, &o);
     CHECK(r == 20 || r == 0);
     r = U(GetObjectW)(f, 1, &o);
@@ -506,7 +506,7 @@ TEST(gap2_cfi_selected_into_dc) {
     HFONT f = cfi()(&lf);
     HGDIOBJ old = U(SelectObject)(dc, f);
     CHECK(old != NULL);
-    EXPECT_EQ(U(GetCurrentObject)(dc, OBJ_FONT), f);
+    G2_EQ(U(GetCurrentObject)(dc, OBJ_FONT), f);
     CHECK(U(SelectObject)(dc, old) == f);
     CHECK(U(DeleteObject)(f));
     U(DeleteDC)(dc);
@@ -583,9 +583,9 @@ TEST(gap2_cfi_double_delete) {
     HFONT f = cfi()(&lf);
     CHECK(U(DeleteObject)(f));
     CHECK(!U(DeleteObject)(f));
-    EXPECT_EQ(U(GetObjectType)(f), 0);
+    G2_EQ(U(GetObjectType)(f), 0);
     SetLastError(0);
-    EXPECT_EQ(U(GetObjectW)(f, sizeof lf, &lf), 0);
+    G2_EQ(U(GetObjectW)(f, sizeof lf, &lf), 0);
 }
 TEST(gap2_cfi_logfont_not_modified) {
     NEED_CFI();

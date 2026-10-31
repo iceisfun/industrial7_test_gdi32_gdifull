@@ -75,7 +75,7 @@ TEST(gap2_opm_destroy_repeatable) {
     REQUIRE(G32(DestroyOPMProtectedOutput));
     SKIP_ON_WINE("OPM stubs unimplemented");
     LONG a = G32(DestroyOPMProtectedOutput)(NULL), b = G32(DestroyOPMProtectedOutput)(NULL);
-    CHECK(a < 0); EXPECT_EQ(a, b);
+    CHECK(a < 0); G2_EQ(a, b);
 }
 TEST(gap2_opm_set_signing_key_invalid_handles) {
     REQUIRE(G32(SetOPMSigningKeyAndSequenceNumbers));
@@ -181,10 +181,10 @@ TEST(gap2_ddcci_same_status_for_all_bad_handles) {
     SKIP_ON_WINE("DDC/CI stubs unimplemented");
     /* the table lookup yields one fixed failure status for unknown handles */
     LONG first = G32(DDCCISaveCurrentSettings)((HANDLE)mon_bad[0]);
-    for (int i = 1; i < NMON; i++) EXPECT_EQ(G32(DDCCISaveCurrentSettings)((HANDLE)mon_bad[i]), first);
+    for (int i = 1; i < NMON; i++) G2_EQ(G32(DDCCISaveCurrentSettings)((HANDLE)mon_bad[i]), first);
     DWORD len;
     LONG f2 = G32(DDCCIGetCapabilitiesStringLength)(NULL, &len);
-    for (int i = 1; i < NMON; i++) EXPECT_EQ(G32(DDCCIGetCapabilitiesStringLength)((HANDLE)mon_bad[i], &len), f2);
+    for (int i = 1; i < NMON; i++) G2_EQ(G32(DDCCIGetCapabilitiesStringLength)((HANDLE)mon_bad[i], &len), f2);
     t_note("unknown-monitor-handle status %#lx", first);
 }
 
@@ -211,7 +211,7 @@ TEST(gap2_gdirender_begin_plain_bitmaps) {
     HBITMAP cb = U(CreateBitmap)(4, 4, 1, 32, NULL);
     CHECK(cb != NULL);
     CHECK((DWORD)G32(BeginGdiRendering)(cb, 0, 0) == 0);
-    EXPECT_EQ(U(GetObjectType)(cb), OBJ_BITMAP);
+    G2_EQ(U(GetObjectType)(cb), OBJ_BITMAP);
     U(DeleteObject)(cb);
     g2_free(&d);
 }
@@ -299,7 +299,7 @@ TEST(gap2_dwm_remoting_output_keeps_gdi_state) {
     SKIP_ON_WINE("DWM stubs unimplemented");
     DWORD before = g2_gdi_count();
     G32(DwmCreatedBitmapRemotingOutput)();
-    EXPECT_EQ(g2_gdi_count(), before);
+    G2_EQ(g2_gdi_count(), before);
 }
 TEST(gap2_dwm_dirty_rgn_not_supported) {
     REQUIRE(G32F(DwmGetDirtyRgnImpl));

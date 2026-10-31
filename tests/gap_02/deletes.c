@@ -22,9 +22,9 @@ TEST(gap2_idc_memory_dc) {
     NEED_IDC();
     HDC dc = U(CreateCompatibleDC)(NULL);
     CHECK(dc != NULL);
-    EXPECT_EQ(U(GetObjectType)(dc), OBJ_MEMDC);
+    G2_EQ(U(GetObjectType)(dc), OBJ_MEMDC);
     CHECK(IDC(dc));
-    EXPECT_EQ(U(GetObjectType)(dc), 0);
+    G2_EQ(U(GetObjectType)(dc), 0);
 }
 TEST(gap2_idc_second_delete_fails) {
     NEED_IDC();
@@ -79,7 +79,7 @@ TEST(gap2_idc_with_selected_objects) {
     CHECK(U(DeleteObject)(bm));
     CHECK(U(DeleteObject)(br));
     CHECK(U(DeleteObject)(pen));
-    EXPECT_EQ(U(GetObjectType)(bm), 0);
+    G2_EQ(U(GetObjectType)(bm), 0);
 }
 TEST(gap2_idc_gdi_count_balanced) {
     NEED_IDC();
@@ -109,7 +109,7 @@ TEST(gap2_idc_handle_reuse_not_aliasing) {
     CHECK(b != NULL);
     CHECKF(a != b, "handle value reused exactly: %p", a);
     CHECK(!IDC(a) || a == b);
-    EXPECT_EQ(U(GetObjectType)(b), OBJ_MEMDC);
+    G2_EQ(U(GetObjectType)(b), OBJ_MEMDC);
     CHECK(IDC(b));
 }
 TEST(gap2_idc_bitmap_survives_dc_delete) {
@@ -118,17 +118,17 @@ TEST(gap2_idc_bitmap_survives_dc_delete) {
     d.bits[5] = 0xabcdef;
     U(SelectObject)(d.dc, d.old);
     CHECK(IDC(d.dc)); d.dc = NULL; d.old = NULL;
-    EXPECT_EQ(U(GetObjectType)(d.bmp), OBJ_BITMAP);
-    EXPECT_EQ(d.bits[5], 0xabcdef);
+    G2_EQ(U(GetObjectType)(d.bmp), OBJ_BITMAP);
+    G2_EQ(d.bits[5], 0xabcdef);
     g2_free(&d);
 }
 TEST(gap2_idc_display_dc) {
     NEED_IDC(); REQUIRE(U(CreateDCA));
     HDC dc = U(CreateDCA)("DISPLAY", NULL, NULL, NULL);
     if (!dc) { t_skip("no display DC"); return; }
-    EXPECT_EQ(U(GetObjectType)(dc), OBJ_DC);
+    G2_EQ(U(GetObjectType)(dc), OBJ_DC);
     CHECK(IDC(dc));
-    EXPECT_EQ(U(GetObjectType)(dc), 0);
+    G2_EQ(U(GetObjectType)(dc), 0);
 }
 TEST(gap2_idc_info_dc) {
     NEED_IDC(); REQUIRE(U(CreateICA));
@@ -153,7 +153,7 @@ TEST(gap2_idc_stock_object_refused) {
     NEED_IDC(); REQUIRE(U(GetStockObject));
     HGDIOBJ st = U(GetStockObject)(WHITE_BRUSH);
     CHECK(!IDC((HDC)st));
-    EXPECT_EQ(U(GetObjectType)(st), OBJ_BRUSH);
+    G2_EQ(U(GetObjectType)(st), OBJ_BRUSH);
 }
 TEST(gap2_idc_wmf_dc_refused) {
     NEED_IDC(); REQUIRE(U(CreateMetaFileW)); REQUIRE(U(CloseMetaFile)); REQUIRE(U(DeleteMetaFile));
@@ -199,7 +199,7 @@ TEST(gap2_idc_dc_from_other_thread) {
     WaitForSingleObject(t, 5000); CloseHandle(t);
     CHECK(dc != NULL);
     /* GDI handles belong to the process, not the creating thread */
-    EXPECT_EQ(U(GetObjectType)(dc), OBJ_MEMDC);
+    G2_EQ(U(GetObjectType)(dc), OBJ_MEMDC);
     BOOL r = IDC(dc);
     t_note("cross-thread InternalDeleteDC -> %d", r);
     if (!r) U(DeleteDC)(dc);
@@ -222,10 +222,10 @@ static HGDIOBJ mk_pal(void) { LOGPALETTE lp = { 0x300, 1, { { 1, 2, 3, 0 } } }; 
 static void idobj_roundtrip(mk_fn mk, DWORD type) {
     HGDIOBJ o = mk();
     CHECK(o != NULL); if (!o) return;
-    EXPECT_EQ(U(GetObjectType)(o), type);
+    G2_EQ(U(GetObjectType)(o), type);
     DWORD base = g2_gdi_count();
     CHECK(IDO(o));
-    EXPECT_EQ(U(GetObjectType)(o), 0);
+    G2_EQ(U(GetObjectType)(o), 0);
     EXPECT_GDI(base - 1);
     SetLastError(0);
     CHECK(!IDO(o));
@@ -250,7 +250,7 @@ TEST(gap2_ido_dibsection) {
     U(SelectObject)(d.dc, d.old); d.old = NULL;
     HBITMAP b = d.bmp;
     CHECK(IDO(b));
-    EXPECT_EQ(U(GetObjectType)(b), 0);
+    G2_EQ(U(GetObjectType)(b), 0);
     d.bmp = NULL; d.bits = NULL;
     g2_free(&d);
 }
@@ -280,8 +280,8 @@ TEST(gap2_ido_stock_objects_survive) {
         DWORD t = U(GetObjectType)(o);
         BOOL a = IDO(o);
         t_note("stock %d InternalDeleteObject -> %d", ids[i], a);
-        EXPECT_EQ(U(GetObjectType)(o), t);
-        EXPECT_EQ(U(GetStockObject)(ids[i]), o);
+        G2_EQ(U(GetObjectType)(o), t);
+        G2_EQ(U(GetStockObject)(ids[i]), o);
     }
 }
 TEST(gap2_ido_stock_default_palette) {
@@ -290,7 +290,7 @@ TEST(gap2_ido_stock_default_palette) {
     CHECK(o != NULL);
     BOOL a = IDO(o);
     t_note("DEFAULT_PALETTE InternalDeleteObject -> %d", a);
-    EXPECT_EQ(U(GetObjectType)(o), OBJ_PAL);
+    G2_EQ(U(GetObjectType)(o), OBJ_PAL);
 }
 TEST(gap2_ido_selected_bitmap_not_deleted) {
     NEED_IDO(); REQUIRE(U(SelectObject));
@@ -299,10 +299,10 @@ TEST(gap2_ido_selected_bitmap_not_deleted) {
     HGDIOBJ old = U(SelectObject)(dc, bm);
     BOOL a = IDO(bm);
     t_note("InternalDeleteObject(selected bitmap) -> %d", a);
-    if (!a) EXPECT_EQ(U(GetObjectType)(bm), OBJ_BITMAP);
+    if (!a) G2_EQ(U(GetObjectType)(bm), OBJ_BITMAP);
     U(SelectObject)(dc, old);
     if (U(GetObjectType)(bm)) CHECK(IDO(bm));
-    EXPECT_EQ(U(GetObjectType)(bm), 0);
+    G2_EQ(U(GetObjectType)(bm), 0);
     U(DeleteDC)(dc);
 }
 TEST(gap2_ido_selected_bitmap_matches_deleteobject) {
@@ -328,7 +328,7 @@ TEST(gap2_ido_selected_pen_deferred) {
     t_note("InternalDeleteObject(selected pen) -> %d, type after %lu", a, U(GetObjectType)(pen));
     U(SelectObject)(dc, old);
     if (U(GetObjectType)(pen)) U(DeleteObject)(pen);
-    EXPECT_EQ(U(GetObjectType)(pen), 0);
+    G2_EQ(U(GetObjectType)(pen), 0);
     U(DeleteDC)(dc);
 }
 TEST(gap2_ido_selected_brush_deferred) {
@@ -340,7 +340,7 @@ TEST(gap2_ido_selected_brush_deferred) {
     t_note("InternalDeleteObject(selected brush) -> %d", a);
     U(SelectObject)(dc, old);
     if (U(GetObjectType)(br)) U(DeleteObject)(br);
-    EXPECT_EQ(U(GetObjectType)(br), 0);
+    G2_EQ(U(GetObjectType)(br), 0);
     U(DeleteDC)(dc);
 }
 TEST(gap2_ido_dc_handle_deletes_dc) {
@@ -410,7 +410,7 @@ TEST(gap2_ido_wrong_type_confusion_safe) {
     HGDIOBJ keep = mk_brush();
     HGDIOBJ r = mk_rgn();
     CHECK(IDO(r));
-    EXPECT_EQ(U(GetObjectType)(keep), OBJ_BRUSH);
+    G2_EQ(U(GetObjectType)(keep), OBJ_BRUSH);
     CHECK(IDO(keep));
 }
 
@@ -423,7 +423,7 @@ TEST(gap2_mfdel_unlinked_objects_untouched) {
     for (unsigned i = 0; i < 6; i++) {
         HGDIOBJ o = fns[i]();
         CHECKF(G32F(MF_DeleteObject)(o) == 1, "type %u", i);
-        EXPECT_EQ(U(GetObjectType)(o), ty[i]);   /* only the metafile link is removed, never the object */
+        G2_EQ(U(GetObjectType)(o), ty[i]);   /* only the metafile link is removed, never the object */
         CHECK(U(DeleteObject)(o));
     }
 }
@@ -441,14 +441,14 @@ TEST(gap2_mfdel_repeatable) {
     NEED_MFD();
     HGDIOBJ o = mk_pen();
     for (int i = 0; i < 100; i++) if (G32F(MF_DeleteObject)(o) != 1) { CHECKF(0, "call %d", i); break; }
-    EXPECT_EQ(U(GetObjectType)(o), OBJ_PEN);
+    G2_EQ(U(GetObjectType)(o), OBJ_PEN);
     U(DeleteObject)(o);
 }
 TEST(gap2_mfdel_stock_object) {
     NEED_MFD(); REQUIRE(U(GetStockObject));
     HGDIOBJ s = U(GetStockObject)(BLACK_PEN);
     CHECK(G32F(MF_DeleteObject)(s) == 1);
-    EXPECT_EQ(U(GetObjectType)(s), OBJ_PEN);
+    G2_EQ(U(GetObjectType)(s), OBJ_PEN);
 }
 TEST(gap2_mfdel_no_gdi_leak) {
     NEED_MFD();
@@ -486,7 +486,7 @@ TEST(gap2_mfdel_emf_linked_pen) {
     U(SelectObject)(m, old);
     BOOL r = G32F(MF_DeleteObject)(pen);
     CHECK(r == 1);
-    EXPECT_EQ(U(GetObjectType)(pen), OBJ_PEN);
+    G2_EQ(U(GetObjectType)(pen), OBJ_PEN);
     HENHMETAFILE h = U(CloseEnhMetaFile)(m);
     CHECK(h != NULL);
     if (h) {
@@ -547,7 +547,7 @@ TEST(gap2_mf16del_via_deleteobject_pen) {
     U(MoveToEx)(m, 0, 0, NULL); U(LineTo)(m, 5, 5);
     U(SelectObject)(m, old);
     CHECK(U(DeleteObject)(pen));
-    EXPECT_EQ(U(GetObjectType)(pen), 0);
+    G2_EQ(U(GetObjectType)(pen), 0);
     HMETAFILE h = U(CloseMetaFile)(m);
     CHECK(h != NULL);
     if (h) {

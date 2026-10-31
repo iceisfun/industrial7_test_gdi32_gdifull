@@ -582,8 +582,8 @@ TEST(gap2_createdca_display) {
     NEED_CDC();
     HDC dc = cdca()("DISPLAY", NULL, NULL, NULL);
     if (!dc) { t_skip("no display"); return; }
-    EXPECT_EQ(U(GetObjectType)(dc), OBJ_DC);
-    EXPECT_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY);
+    G2_EQ(U(GetObjectType)(dc), OBJ_DC);
+    G2_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY);
     CHECK(U(GetDeviceCaps)(dc, HORZRES) > 0 && U(GetDeviceCaps)(dc, VERTRES) > 0);
     CHECK(U(DeleteDC)(dc));
 }
@@ -593,7 +593,7 @@ TEST(gap2_createdca_display_case_insensitive) {
     for (int i = 0; i < 4; i++) {
         HDC dc = cdca()(n[i], NULL, NULL, NULL);
         CHECKF(dc != NULL, "driver '%s'", n[i]);
-        if (dc) { EXPECT_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY); U(DeleteDC)(dc); }
+        if (dc) { G2_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY); U(DeleteDC)(dc); }
     }
 }
 TEST(gap2_createdca_matches_screen_dc) {
@@ -611,9 +611,9 @@ TEST(gap2_createdca_default_objects) {
     NEED_CDC(); REQUIRE(U(GetCurrentObject)); REQUIRE(U(GetStockObject));
     HDC dc = cdca()("DISPLAY", NULL, NULL, NULL);
     if (!dc) { t_skip("no display"); return; }
-    EXPECT_EQ(U(GetCurrentObject)(dc, OBJ_PEN), U(GetStockObject)(BLACK_PEN));
-    EXPECT_EQ(U(GetCurrentObject)(dc, OBJ_BRUSH), U(GetStockObject)(WHITE_BRUSH));
-    EXPECT_EQ(U(GetCurrentObject)(dc, OBJ_FONT), U(GetStockObject)(SYSTEM_FONT));
+    G2_EQ(U(GetCurrentObject)(dc, OBJ_PEN), U(GetStockObject)(BLACK_PEN));
+    G2_EQ(U(GetCurrentObject)(dc, OBJ_BRUSH), U(GetStockObject)(WHITE_BRUSH));
+    G2_EQ(U(GetCurrentObject)(dc, OBJ_FONT), U(GetStockObject)(SYSTEM_FONT));
     U(DeleteDC)(dc);
 }
 TEST(gap2_createdca_empty_devmode_for_display) {
@@ -621,7 +621,7 @@ TEST(gap2_createdca_empty_devmode_for_display) {
     DEVMODEA dm; memset(&dm, 0, sizeof dm);   /* dmDeviceName empty -> ignored for DISPLAY */
     HDC dc = cdca()("DISPLAY", NULL, NULL, &dm);
     CHECK(dc != NULL);
-    if (dc) { EXPECT_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY); U(DeleteDC)(dc); }
+    if (dc) { G2_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY); U(DeleteDC)(dc); }
 }
 TEST(gap2_createdca_output_ignored_for_display) {
     NEED_CDC();
@@ -676,7 +676,7 @@ TEST(gap2_createdca_primary_device_name) {
     HDC dc = cdca()(NULL, dd.DeviceName, NULL, NULL);
     CHECKF(dc != NULL, "device %s", dd.DeviceName);
     if (dc) {
-        EXPECT_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY);
+        G2_EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), DT_RASDISPLAY);
         U(DeleteDC)(dc);
     }
     dc = cdca()("DISPLAY", dd.DeviceName, NULL, NULL);
