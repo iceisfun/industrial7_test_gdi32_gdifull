@@ -108,3 +108,33 @@ static DWORD pb_gdi_count(void)
     return ggr ? ggr(GetCurrentProcess(), 0 /* GR_GDIOBJECTS */) : 0;
 }
 #endif
+
+/* compare a whole surface against a per-pixel model expression using variables x,y */
+#define SURF_CHECK(m, name, EXPR) do { int bad_ = 0, fx_ = -1, fy_ = -1; unsigned got_ = 0, exp_ = 0; pb_sync(); \
+    for (int y = 0; y < (m)->h; y++) for (int x = 0; x < (m)->w; x++) { \
+        unsigned e_ = (EXPR); unsigned g_ = pb_get((m), x, y); \
+        if (g_ != e_) { if (!bad_) { fx_ = x; fy_ = y; got_ = g_; exp_ = e_; } bad_++; } } \
+    t_check(!bad_, __FILE__, __LINE__, name, "%d mismatches, first at (%d,%d) got %x want %x", bad_, fx_, fy_, got_, exp_); } while (0)
+
+/* hatch model: 1 = hatch line pixel (origin 0,0) */
+static int pb_hatch_bit(int hatch, int x, int y)
+{
+    static const BYTE rows[6][8] = {
+        { 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00 },
+        { 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08 },
+        { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 },
+        { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 },
+        { 0x08, 0x08, 0x08, 0xff, 0x08, 0x08, 0x08, 0x08 },
+        { 0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81 } };
+    return (rows[hatch][y & 7] >> (7 - (x & 7))) & 1;
+}
+static int pb_mod8(int v) { return ((v % 8) + 8) % 8; }
+
+/* select brush, PatBlt, restore */
+static BOOL pb_fill(PBM *m, HBRUSH b, int x, int y, int w, int h, DWORD rop)
+{
+    HGDIOBJ old = U(SelectObject)(m->dc, b);
+    BOOL r = U(PatBlt)(m->dc, x, y, w, h, rop);
+    U(SelectObject)(m->dc, old);
+    return r;
+}
