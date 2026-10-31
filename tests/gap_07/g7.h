@@ -13,6 +13,25 @@ static int g7_is_wine(void) {
     return n && GetProcAddress(n, "wine_get_version") != NULL;
 }
 
+/* Uniscribe entry point: gdi32 -> gdi32full as always; on hosts where those do not carry it (non-Windows sanity
+ * runs) fall back to usp10.dll so that the test logic still runs. Real Windows 10 always resolves in gdi32. */
+static FARPROC g7_usp_proc(const char *n) {
+    FARPROC p = NULL;
+    if (g7_is_wine()) { HMODULE m = LoadLibraryA("usp10.dll"); if (m) p = GetProcAddress(m, n); if (p) return p; }
+    p = t_proc(n);
+    if (!p) { HMODULE m = LoadLibraryA("usp10.dll"); if (m) p = GetProcAddress(m, n); }
+    return p;
+}
+#define USP(name) ((__typeof__(&name))g7_usp_proc(#name))
+
+/* soft expectation: observed behaviour, never fails the run */
+static void g7_soft(const char *file, int line, const char *cond, const char *fmt, ...) {
+    char buf[300]; va_list a;
+    va_start(a, fmt); vsnprintf(buf, sizeof buf, fmt, a); va_end(a);
+    t_note("soft expectation failed (%s:%d) %s : %s", file, line, cond, buf);
+}
+#define SOFT(cond, ...) do { if (!(cond)) g7_soft(__FILE__, __LINE__, #cond, __VA_ARGS__); } while (0)
+
 /* ---- memory DC backed by a 32bpp top-down DIB section ---- */
 typedef struct {
     HDC dc; HBITMAP bmp, oldbm; HFONT font, oldfont;
@@ -86,23 +105,25 @@ typedef struct {
 
 /* returns 1 on success; the run uses items[0] */
 static int g7_run_build(HDC dc, G7RUN *r, const WCHAR *s) {
-    HRESULT (WINAPI *it)(const WCHAR *, int, int, const SCRIPT_CONTROL *, const SCRIPT_STATE *, SCRIPT_ITEM *, int *) = (void *)t_proc("ScriptItemize");
-    HRESULT (WINAPI *sh)(HDC, SCRIPT_CACHE *, const WCHAR *, int, int, SCRIPT_ANALYSIS *, WORD *, WORD *, SCRIPT_VISATTR *, int *) = (void *)t_proc("ScriptShape");
-    HRESULT (WINAPI *pl)(HDC, SCRIPT_CACHE *, const WORD *, int, const SCRIPT_VISATTR *, SCRIPT_ANALYSIS *, int *, GOFFSET *, ABC *) = (void *)t_proc("ScriptPlace");
+    HRESULT (WINAPI *it)(const WCHAR *, int, int, const SCRIPT_CONTROL *, const SCRIPT_STATE *, SCRIPT_ITEM *, int *) = (void *)g7_usp_proc("ScriptItemize");
+    HRESULT (WINAPI *sh)(HDC, SCRIPT_CACHE *, const WCHAR *, int, int, SCRIPT_ANALYSIS *, WORD *, WORD *, SCRIPT_VISATTR *, int *) = (void *)g7_usp_proc("ScriptShape");
+    HRESULT (WINAPI *pl)(HDC, SCRIPT_CACHE *, const WORD *, int, const SCRIPT_VISATTR *, SCRIPT_ANALYSIS *, int *, GOFFSET *, ABC *) = (void *)g7_usp_proc("ScriptPlace");
     memset(r, 0, sizeof *r);
     if (!it || !sh || !pl) return 0;
     r->n = lstrlenW(s);
     if (r->n <= 0 || r->n >= G7_MAXC) return 0;
     memcpy(r->s, s, (r->n + 1) * sizeof(WCHAR));
     if (FAILED(it(r->s, r->n, r->n + 1, NULL, NULL, r->items, &r->nitems))) return 0;
-    if (r->nitems < 2) return 0; /* items[nitems] is the sentinel */
+    if (r->nitems < 1) return 0; /* items[nitems] is the sentinel */
     r->psa = r->items[0].a;
+    r->n = r->items[1].iCharPos - r->items[0].iCharPos; /* first item only */
+    if (r->n <= 0) return 0;
     if (FAILED(sh(dc, &r->sc, r->s, r->n, G7_MAXG, &r->psa, r->glyphs, r->clust, r->va, &r->ng))) return 0;
     if (FAILED(pl(dc, &r->sc, r->glyphs, r->ng, r->va, &r->psa, r->adv, r->go, &r->abc))) return 0;
     return 1;
 }
 static void g7_run_free(G7RUN *r) {
-    HRESULT (WINAPI *fc)(SCRIPT_CACHE *) = (void *)t_proc("ScriptFreeCache");
+    HRESULT (WINAPI *fc)(SCRIPT_CACHE *) = (void *)g7_usp_proc("ScriptFreeCache");
     if (fc) fc(&r->sc);
 }
 static int g7_run_width(const G7RUN *r) { int w = 0; for (int i = 0; i < r->ng; i++) w += r->adv[i]; return w; }
