@@ -44,6 +44,7 @@ static int md_create_bpp(MD *m, int w, int h, int bpp) {
         bi->bmiColors[0].rgbRed = bi->bmiColors[0].rgbGreen = bi->bmiColors[0].rgbBlue = 0;
         bi->bmiColors[1].rgbRed = bi->bmiColors[1].rgbGreen = bi->bmiColors[1].rgbBlue = 255;
         bi->bmiHeader.biClrUsed = bpp == 8 ? 256 : 2;
+        if (bpp == 8) { int i; for (i = 2; i < 256; i++) bi->bmiColors[i].rgbRed = bi->bmiColors[i].rgbGreen = bi->bmiColors[i].rgbBlue = 255; }
     }
     m->dc = U(CreateCompatibleDC)(NULL);
     if (!m->dc) return 0;
