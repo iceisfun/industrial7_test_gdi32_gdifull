@@ -3,6 +3,7 @@
 #define PB_H
 #include "t.h"
 #include <limits.h>
+#include <stdlib.h>
 
 #define GetStockObject(i) (U(GetStockObject) ? U(GetStockObject)(i) : (HGDIOBJ)NULL)
 #define NEED_MEM() do { REQUIRE(U(CreateCompatibleDC)); REQUIRE(U(DeleteDC)); \
