@@ -1,9 +1,10 @@
 /* Attributes on window/screen/IC/EMF DCs, DC lifetime, handle recycling, object counts. */
 #include "dca.h"
 
+static LRESULT CALLBACK dca_defproc(HWND h, UINT m, WPARAM w, LPARAM l) { return U(DefWindowProcA)(h, m, w, l); }
 static ATOM reg_class(const char *name, UINT style) {
     WNDCLASSEXA wc; memset(&wc, 0, sizeof wc);
-    wc.cbSize = sizeof wc; wc.style = style; wc.lpfnWndProc = (WNDPROC)U(DefWindowProcA);
+    wc.cbSize = sizeof wc; wc.style = style; wc.lpfnWndProc = dca_defproc;
     wc.hInstance = GetModuleHandleA(NULL); wc.lpszClassName = name;
     return U(RegisterClassExA)(&wc);
 }
