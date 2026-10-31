@@ -238,6 +238,7 @@ TEST(emf_playrec_setbkcolor_on_dib) {
 
 TEST(emf_playrec_setmapmode_and_back) {
     REQUIRE(U(PlayEnhMetaFileRecord));
+    if (emf_wine()) { t_skip("wine: SETMAPMODE record playback faults"); return; }
     emf_dib d; if (!emf_dib_make(&d, 8, 8, 0)) { t_skip("no dib"); return; }
     EMRSETMAPMODE r = { { EMR_SETMAPMODE, sizeof r }, MM_LOMETRIC };
     HANDLETABLE ht[2]; memset(ht, 0, sizeof ht); ht[0].objectHandle[0] = (HGDIOBJ)ht_mf();
