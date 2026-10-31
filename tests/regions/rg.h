@@ -3,6 +3,7 @@
 #define RG_H
 #include "t.h"
 #include <stdlib.h>
+#include <math.h>
 
 #ifndef NULLREGION
 #define NULLREGION 1
@@ -63,7 +64,8 @@ static int rg_type(HRGN h) { RECT rc; return U(GetRgnBox)(h, &rc); }
 #define RG_N 64
 typedef struct { unsigned char c[RG_N][RG_N]; } RgGrid;
 static void rg_grid_of(HRGN h, RgGrid *g) {
-    for (int y = 0; y < RG_N; y++) for (int x = 0; x < RG_N; x++) g->c[y][x] = U(PtInRegion)(h, x, y) ? 1 : 0;
+    __typeof__(&PtInRegion) pt = U(PtInRegion);
+    for (int y = 0; y < RG_N; y++) for (int x = 0; x < RG_N; x++) g->c[y][x] = pt(h, x, y) ? 1 : 0;
 }
 static void rg_grid_rect(RgGrid *g, int l, int t, int r, int b) {
     for (int y = t; y < b; y++) for (int x = l; x < r; x++)
