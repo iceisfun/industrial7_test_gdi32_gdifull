@@ -418,7 +418,7 @@ TEST(dprim_line_huge_coordinates_no_crash) {
     dp_close(&d);
 }
 TEST(dprim_line_huge_coords_horizontal_visible_part) {
-    DP d; DP_NEED();
+    DP d; DP_NEED(); NOT_WINE("huge coordinates corrupt wine heap");
     CHECK(dp_open(&d, W, H, 32)); dp_black(&d);
     dp_line(&d, -(1 << 20), 8, 1 << 20, 8);
     EXPECT_EQ(dp_row(&d, 8, 0, W), W);
