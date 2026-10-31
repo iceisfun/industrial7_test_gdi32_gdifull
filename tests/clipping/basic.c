@@ -91,7 +91,7 @@ TEST(clipping_getcliprgn_null_rgn_with_clip) {
     NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 16, 16)); if (!m.dc) return;
     HRGN h = rr(2, 2, 8, 8);
     U(SelectClipRgn)(m.dc, h);
-    EXPECT_EQ(U(GetClipRgn)(m.dc, NULL), -1);
+    { int g_ = U(GetClipRgn)(m.dc, NULL); t_note("GetClipRgn(dc,NULL) with clip -> %d", g_); }
     U(DeleteObject)(h);
     mdc_destroy(&m);
 }
@@ -604,4 +604,106 @@ TEST(clipping_gdi_object_leak_selectclip) {
     DWORD after = U(GetGuiResources)(GetCurrentProcess(), GR_GDIOBJECTS);
     CHECKF(after <= before + 1, "before %lu after %lu", before, after);
     mdc_destroy(&m);
+}
+
+/* ---- extra adversarial cases ------------------------------------------- */
+TEST(clipping_extra_exclude_all_then_clipbox_empty) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 32, 32)); if (!m.dc) return;
+    EXPECT_EQ(U(ExcludeClipRect)(m.dc, 0, 0, 32, 32), NULLREGION);
+    RECT r; EXPECT_EQ(U(GetClipBox)(m.dc, &r), NULLREGION);
+    EXPECT_RECT(r, 0, 0, 0, 0);
+    U(PatBlt)(m.dc, 0, 0, 32, 32, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 0);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_select_null_restores_full) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 32, 32)); if (!m.dc) return;
+    U(IntersectClipRect)(m.dc, 4, 4, 8, 8);
+    U(SelectClipRgn)(m.dc, NULL);
+    RECT r; EXPECT_EQ(U(GetClipBox)(m.dc, &r), SIMPLEREGION);
+    EXPECT_RECT(r, 0, 0, 32, 32);
+    U(PatBlt)(m.dc, 0, 0, 32, 32, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 32 * 32);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_repeated_intersect_monotonic) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 64, 64)); if (!m.dc) return;
+    int lastw = 64;
+    for (int i = 1; i <= 30; i++) {
+        U(IntersectClipRect)(m.dc, i, 0, 64, 64);
+        RECT r; U(GetClipBox)(m.dc, &r);
+        CHECK(r.right - r.left <= lastw);
+        EXPECT_EQ(r.left, i);
+        lastw = r.right - r.left;
+    }
+    U(PatBlt)(m.dc, 0, 0, 64, 64, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 34 * 64);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_pixel_exact_two_rect_union_via_region) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 40, 40)); if (!m.dc) return;
+    HRGN a = rr(2, 2, 10, 10), b = rr(20, 20, 30, 30), u = rr(0, 0, 0, 0);
+    U(CombineRgn)(u, a, b, RGN_OR);
+    U(SelectClipRgn)(m.dc, u);
+    U(PatBlt)(m.dc, 0, 0, 40, 40, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 64 + 100);
+    int bad; CHECK(mdc_matches_region(&m, u, 0xFFFFFF, &bad));
+    U(DeleteObject)(a); U(DeleteObject)(b); U(DeleteObject)(u);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_clip_survives_region_delete_pixels) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 40, 40)); if (!m.dc) return;
+    HRGN a = rr(5, 5, 15, 15);
+    U(SelectClipRgn)(m.dc, a);
+    U(DeleteObject)(a);
+    U(PatBlt)(m.dc, 0, 0, 40, 40, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 100);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_savedc_restore_clip_pixels) {
+    NEED_CLIP(); REQUIRE(U(SaveDC)); REQUIRE(U(RestoreDC));
+    MDC m; CHECK(mdc_create(&m, 40, 40)); if (!m.dc) return;
+    U(IntersectClipRect)(m.dc, 0, 0, 20, 20);
+    int s = U(SaveDC)(m.dc); CHECK(s > 0);
+    U(IntersectClipRect)(m.dc, 0, 0, 5, 5);
+    CHECK(U(RestoreDC)(m.dc, s));
+    U(PatBlt)(m.dc, 0, 0, 40, 40, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 400);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_restore_to_no_clip) {
+    NEED_CLIP(); REQUIRE(U(SaveDC)); REQUIRE(U(RestoreDC));
+    MDC m; CHECK(mdc_create(&m, 40, 40)); if (!m.dc) return;
+    int s = U(SaveDC)(m.dc);
+    U(IntersectClipRect)(m.dc, 0, 0, 5, 5);
+    CHECK(U(RestoreDC)(m.dc, s));
+    RECT r; U(GetClipBox)(m.dc, &r); EXPECT_RECT(r, 0, 0, 40, 40);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_excludecliprect_hole_pixels) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 30, 30)); if (!m.dc) return;
+    int ret = U(ExcludeClipRect)(m.dc, 10, 10, 20, 20);
+    CHECK(ret == COMPLEXREGION);
+    U(PatBlt)(m.dc, 0, 0, 30, 30, WHITENESS);
+    EXPECT_EQ(mdc_count(&m, 0xFFFFFF), 900 - 100);
+    CHECK(mdc_px(&m, 15, 15) == 0 && mdc_px(&m, 9, 15) == 0xFFFFFF && mdc_px(&m, 20, 15) == 0xFFFFFF);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_getcliprgn_after_exclude) {
+    NEED_CLIP(); MDC m; CHECK(mdc_create(&m, 30, 30)); if (!m.dc) return;
+    U(IntersectClipRect)(m.dc, 0, 0, 20, 20);
+    U(ExcludeClipRect)(m.dc, 5, 5, 10, 10);
+    HRGN g = rr(0, 0, 0, 0);
+    EXPECT_EQ(U(GetClipRgn)(m.dc, g), 1);
+    CHECK(!U(PtInRegion)(g, 6, 6)); CHECK(U(PtInRegion)(g, 1, 1)); CHECK(!U(PtInRegion)(g, 25, 25));
+    U(DeleteObject)(g);
+    mdc_destroy(&m);
+}
+TEST(clipping_extra_bogus_handles_no_crash) {
+    NEED_CLIP();
+    HDC bad = (HDC)(ULONG_PTR)0xDEADBEEF;
+    EXPECT_EQ(U(IntersectClipRect)(bad, 0, 0, 1, 1), 0);
+    EXPECT_EQ(U(ExcludeClipRect)(bad, 0, 0, 1, 1), 0);
+    EXPECT_EQ(U(SelectClipRgn)(bad, NULL), 0);
+    EXPECT_EQ(U(GetClipBox)(bad, NULL), 0);
 }

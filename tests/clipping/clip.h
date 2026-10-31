@@ -27,7 +27,11 @@ typedef int (WINAPI *clip_getrandomrgn_t)(HDC, HRGN, INT);
 
 static int clip_is_wine(void) {
     HMODULE n = GetModuleHandleA("ntdll.dll");
-    return n && GetProcAddress(n, "wine_get_version") != NULL;
+    { HKEY k; if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Wine", 0, KEY_READ, &k) == 0) { RegCloseKey(k); return 1; } }
+    return n && (GetProcAddress(n, "wine_get_version") != NULL ||
+                 GetProcAddress(n, "wine_get_host_version") != NULL ||
+                 GetProcAddress(n, "__wine_init_unix_call") != NULL ||
+                 GetProcAddress(n, "wine_server_call") != NULL);
 }
 
 typedef struct {
