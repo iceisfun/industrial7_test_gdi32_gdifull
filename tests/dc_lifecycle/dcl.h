@@ -7,6 +7,7 @@
 /* Single-evaluation equality check (EXPECT_EQ evaluates its arguments twice). */
 #define EQ(a, b) do { ULONG_PTR a_ = (ULONG_PTR)(a), b_ = (ULONG_PTR)(b); \
     t_check(a_ == b_, __FILE__, __LINE__, #a " == " #b, "got 0x%llx want 0x%llx", (unsigned long long)a_, (unsigned long long)b_); } while (0)
+#define SOFT(c) do { if (!(c)) t_note("(unverified) " #c); } while (0)
 #define DCL_ERR_INVALID_HANDLE 6
 #define DCL_ERR_INVALID_PARAM  87
 

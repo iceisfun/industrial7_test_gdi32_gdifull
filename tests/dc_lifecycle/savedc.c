@@ -545,3 +545,27 @@ TEST(dcl_restore_dibsection_still_selected) {
     EQ(U(GetCurrentObject)(dc, OBJ_BITMAP), bmp);
     dcl_free_mem(dc, bmp, old);
 }
+
+TEST(dcl_save_restore_roundtrip_many_attrs) {
+    REQUIRE(U(SaveDC)); REQUIRE(U(RestoreDC)); REQUIRE(U(SetTextColor)); REQUIRE(U(SetBkMode)); REQUIRE(U(SetROP2));
+    HDC dc = dcl_mem();
+    COLORREF tc = U(GetTextColor)(dc); int bm = U(GetBkMode)(dc), rop = U(GetROP2)(dc);
+    EQ(U(SaveDC)(dc), 1);
+    U(SetTextColor)(dc, RGB(1, 2, 3)); U(SetBkMode)(dc, TRANSPARENT); U(SetROP2)(dc, R2_XORPEN);
+    EQ(U(GetROP2)(dc), R2_XORPEN);
+    CHECK(U(RestoreDC)(dc, 1));
+    EQ(U(GetTextColor)(dc), tc); EQ(U(GetBkMode)(dc), bm); EQ(U(GetROP2)(dc), rop);
+    /* level 1 is gone: restoring again fails */
+    CHECK(!U(RestoreDC)(dc, 1));
+    del(dc);
+}
+
+TEST(dcl_save_restore_zero_level) {
+    REQUIRE(U(SaveDC)); REQUIRE(U(RestoreDC));
+    HDC dc = dcl_mem();
+    U(SaveDC)(dc);
+    t_note("RestoreDC(0) -> %d", U(RestoreDC)(dc, 0));
+    t_note("RestoreDC(INT_MIN) -> %d", U(RestoreDC)(dc, INT_MIN));
+    t_note("RestoreDC(INT_MAX) -> %d", U(RestoreDC)(dc, INT_MAX));
+    del(dc);
+}

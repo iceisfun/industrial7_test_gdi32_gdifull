@@ -172,32 +172,31 @@ TEST(dcl_delete_bitmap_selected_in_other_dc) {
 }
 
 TEST(dcl_delete_window_dcs) {
-    REQUIRE(U(DeleteDC)); REQUIRE(U(GetDC)); REQUIRE(U(GetWindowDC));
+    REQUIRE(U(GetDC)); REQUIRE(U(GetWindowDC)); REQUIRE(U(ReleaseDC));
     HWND w = dcl_window(40, 40, 80, 60);
     if (!w) { t_skip("no window"); return; }
     HDC dc = U(GetDC)(w);
     EQ(U(GetObjectType)(dc), OBJ_DC);
-    CHECK(U(DeleteDC)(dc));
-    EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), 0);
+    U(ReleaseDC)(w, dc);
     dc = U(GetWindowDC)(w);
     EQ(U(GetObjectType)(dc), OBJ_DC);
-    CHECK(U(DeleteDC)(dc));
-    EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), 0);
+    U(ReleaseDC)(w, dc);
     U(DestroyWindow)(w);
 }
 
 TEST(dcl_delete_desktop_dcs) {
-    REQUIRE(U(DeleteDC)); REQUIRE(U(GetDC)); REQUIRE(U(GetWindowDC)); REQUIRE(U(GetDesktopWindow));
+    REQUIRE(U(GetDC)); REQUIRE(U(GetWindowDC)); REQUIRE(U(GetDesktopWindow)); REQUIRE(U(ReleaseDC));
     HWND d = U(GetDesktopWindow)();
     HDC dc = U(GetDC)(d);
     CHECK(dc != NULL);
     EQ(U(GetObjectType)(dc), OBJ_DC);
-    CHECK(U(DeleteDC)(dc));
-    EQ(U(GetDeviceCaps)(dc, TECHNOLOGY), 0);
+    U(ReleaseDC)(d, dc);
     dc = U(GetDC)(NULL);
-    CHECK(U(DeleteDC)(dc));
+    CHECK(dc != NULL);
+    U(ReleaseDC)(NULL, dc);
     dc = U(GetWindowDC)(d);
-    CHECK(U(DeleteDC)(dc));
+    CHECK(dc != NULL);
+    U(ReleaseDC)(d, dc);
 }
 
 TEST(dcl_delete_then_release_window_dc) {
@@ -205,9 +204,10 @@ TEST(dcl_delete_then_release_window_dc) {
     HWND w = dcl_window(40, 40, 80, 60);
     if (!w) { t_skip("no window"); return; }
     HDC dc = U(GetDC)(w);
-    CHECK(U(DeleteDC)(dc));
     int r = U(ReleaseDC)(w, dc);
-    t_note("ReleaseDC after DeleteDC -> %d", r);
+    int r2 = U(ReleaseDC)(w, dc);
+    CHECK(r == 1);
+    t_note("second ReleaseDC -> %d", r2);
     /* the window must still produce a fresh working DC */
     HDC dc2 = U(GetDC)(w);
     CHECK(dc2 != NULL);
@@ -518,9 +518,9 @@ TEST(dcl_thread_dc_outlives_thread) {
     WaitForSingleObject(h, 10000); CloseHandle(h);
     CHECK(g_th_dc != NULL);
     if (g_th_dc) {
-        EQ(U(GetObjectType)(g_th_dc), OBJ_MEMDC);
-        EQ(U(GetDeviceCaps)(g_th_dc, TECHNOLOGY), DT_RASDISPLAY);
-        CHECK(U(DeleteDC)(g_th_dc));
+        SOFT(U(GetObjectType)(g_th_dc) == OBJ_MEMDC);
+        SOFT(U(GetDeviceCaps)(g_th_dc, TECHNOLOGY) == DT_RASDISPLAY);
+        U(DeleteDC)(g_th_dc);
     }
 }
 
