@@ -268,9 +268,12 @@ TEST(gap10_cwf_values_positive_and_close_to_int) {
     if (!sbcs()) { t_skip("DBCS ACP"); return; }
     if (!fd_open(&f, L"Arial", -20, 400, 0, ANSI_CHARSET)) { t_skip("no font"); return; }
     CHECK(CWF(f.dc, 32, 126, fw)); CHECK(CWA(f.dc, 32, 126, iw));
-    for (i = 0; i < 95; i++) {
-        CHECKF(fw[i] > 0.0f, "char %d float width %f", 32 + i, fw[i]);
-        CHECKF(fabsf(fw[i] - (float)iw[i]) <= 1.01f, "char %d float %f int %d", 32 + i, fw[i], iw[i]);
+    {
+        int bad = 0, first = -1;
+        for (i = 0; i < 95; i++) {
+            if (!(fw[i] > 0.0f) || fabsf(fw[i] - (float)iw[i]) > 1.01f) { if (!bad) first = i; bad++; }
+        }
+        CHECKF(bad == 0, "%d chars off, first %d: float %f int %d", bad, 32 + first, first >= 0 ? fw[first] : 0.0f, first >= 0 ? iw[first] : 0);
     }
     fd_close(&f);
 }
