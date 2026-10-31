@@ -6,7 +6,7 @@
 typedef struct {
     HDC dc; HBITMAP bmp, obmp; HGDIOBJ open, obr;
     BYTE *bits; int w, h, bpp, stride;
-    HGDIOBJ own[16]; int nown;
+    HGDIOBJ own[1100]; int nown;
 } DP;
 
 #define SOFT(c) do { if (!(c)) t_note("soft %s:%d: %s", __FILE__, __LINE__, #c); } while (0)
@@ -22,17 +22,18 @@ static int dp_have(void) {
            U(SetROP2) && U(PatBlt) && U(CreateSolidBrush) && U(GetCurrentPositionEx);
 }
 #define DP_NEED() do { if (!dp_have()) { t_skip("missing gdi exports"); return; } } while (0)
+#define WCHECK(c, ...) do { if (dp_wine()) { if (!(c)) t_note("wine differs: %s:%d %s", __FILE__, __LINE__, #c); } else CHECKF(c, __VA_ARGS__); } while (0)
 #define NOT_WINE(why) do { if (dp_wine()) { t_skip("wine: %s", why); return; } } while (0)
 
 static int dp_open_pal(DP *d, int w, int h, int bpp, const RGBQUAD *pal, int npal) {
-    struct { BITMAPINFOHEADER h; DWORD m[3]; RGBQUAD pal[256]; } bi;
+    struct { BITMAPINFOHEADER h; union { DWORD m[3]; RGBQUAD pal[256]; } u; } bi;
     memset(d, 0, sizeof *d);
     memset(&bi, 0, sizeof bi);
     int realbpp = bpp == 15 ? 16 : bpp;
     bi.h.biSize = sizeof bi.h; bi.h.biWidth = w; bi.h.biHeight = -h; bi.h.biPlanes = 1;
     bi.h.biBitCount = realbpp;
-    if (bpp == 16) { bi.h.biCompression = BI_BITFIELDS; bi.m[0] = 0xF800; bi.m[1] = 0x07E0; bi.m[2] = 0x001F; }
-    else if (bpp == 15) { bi.h.biCompression = BI_BITFIELDS; bi.m[0] = 0x7C00; bi.m[1] = 0x03E0; bi.m[2] = 0x001F; }
+    if (bpp == 16) { bi.h.biCompression = BI_BITFIELDS; bi.u.m[0] = 0xF800; bi.u.m[1] = 0x07E0; bi.u.m[2] = 0x001F; }
+    else if (bpp == 15) { bi.h.biCompression = BI_BITFIELDS; bi.u.m[0] = 0x7C00; bi.u.m[1] = 0x03E0; bi.u.m[2] = 0x001F; }
     else bi.h.biCompression = BI_RGB;
     UINT usage = DIB_RGB_COLORS;
     void *bits = NULL;
@@ -40,9 +41,9 @@ static int dp_open_pal(DP *d, int w, int h, int bpp, const RGBQUAD *pal, int npa
     if (bpp == 1 || bpp == 8) {
         int n = bpp == 1 ? 2 : 256;
         bi.h.biClrUsed = n;
-        if (pal) memcpy(bi.pal, pal, (npal > n ? n : npal) * sizeof(RGBQUAD));
-        else if (bpp == 1) { bi.pal[1].rgbRed = bi.pal[1].rgbGreen = bi.pal[1].rgbBlue = 255; }
-        else for (int i = 0; i < 256; i++) bi.pal[i].rgbRed = bi.pal[i].rgbGreen = bi.pal[i].rgbBlue = i;
+        if (pal) memcpy(bi.u.pal, pal, (npal > n ? n : npal) * sizeof(RGBQUAD));
+        else if (bpp == 1) { bi.u.pal[1].rgbRed = bi.u.pal[1].rgbGreen = bi.u.pal[1].rgbBlue = 255; }
+        else for (int i = 0; i < 256; i++) bi.u.pal[i].rgbRed = bi.u.pal[i].rgbGreen = bi.u.pal[i].rgbBlue = i;
     }
     HDC dc = U(CreateCompatibleDC)(NULL);
     if (!dc) return 0;
@@ -82,18 +83,18 @@ static void dp_close(DP *d) {
 }
 static HPEN dp_pen(DP *d, int style, int width, COLORREF c) {
     HPEN p = U(CreatePen)(style, width, c);
-    if (p && d->nown < 16) { d->own[d->nown++] = p; U(SelectObject)(d->dc, p); }
+    if (p && d->nown < 1100) { d->own[d->nown++] = p; U(SelectObject)(d->dc, p); }
     return p;
 }
 static HPEN dp_xpen(DP *d, DWORD style, DWORD width, COLORREF c) {
     LOGBRUSH lb = { BS_SOLID, c, 0 };
     HPEN p = U(ExtCreatePen)(style, width, &lb, 0, NULL);
-    if (p && d->nown < 16) { d->own[d->nown++] = p; U(SelectObject)(d->dc, p); }
+    if (p && d->nown < 1100) { d->own[d->nown++] = p; U(SelectObject)(d->dc, p); }
     return p;
 }
 static HBRUSH dp_brush(DP *d, COLORREF c) {
     HBRUSH b = U(CreateSolidBrush)(c);
-    if (b && d->nown < 16) { d->own[d->nown++] = b; U(SelectObject)(d->dc, b); }
+    if (b && d->nown < 1100) { d->own[d->nown++] = b; U(SelectObject)(d->dc, b); }
     return b;
 }
 static void dp_stock(DP *d, int obj) { U(SelectObject)(d->dc, U(GetStockObject)(obj)); }
@@ -106,6 +107,7 @@ static DWORD dp_raw(DP *d, int x, int y) {
     BYTE *r = d->bits + y * d->stride;
     switch (d->bpp) {
     case 32: return ((DWORD *)r)[x] & 0xFFFFFF;
+    case 24: return (r[x * 3 + 2] << 16) | (r[x * 3 + 1] << 8) | r[x * 3];
     case 16: return ((WORD *)r)[x];
     case 8: return r[x];
     case 1: return (r[x >> 3] >> (7 - (x & 7))) & 1;
