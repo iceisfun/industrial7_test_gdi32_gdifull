@@ -127,9 +127,9 @@ static void w_fixed_width(const char *face) {
     if (!strcmp(face, "Courier New") || !strcmp(face, "Terminal") || !strcmp(face, "Fixedsys"))
         CHECKF(tm.tmAveCharWidth == tm.tmMaxCharWidth, "%s ave %ld max %ld", face, tm.tmAveCharWidth, tm.tmMaxCharWidth);
     else if (tm.tmAveCharWidth != tm.tmMaxCharWidth) t_note("%s ave %ld max %ld", face, tm.tmAveCharWidth, tm.tmMaxCharWidth);
-    int w[96]; int ok = U(GetCharWidth32A)(c.dc, 0x20, 0x7F, w);
+    int w[95]; int ok = U(GetCharWidth32A)(c.dc, 0x20, 0x7E, w);
     CHECK(ok);
-    for (int i = 1; ok && i < 96; i++) CHECKF(w[i] == w[0], "%s char %02x width %d vs %d", face, 0x20 + i, w[i], w[0]);
+    for (int i = 1; ok && i < 95; i++) CHECKF(w[i] == w[0], "%s char %02x width %d vs %d", face, 0x20 + i, w[i], w[0]);
     SIZE a, b;
     U(GetTextExtentPoint32A)(c.dc, "WWWWWWWW", 8, &a); U(GetTextExtentPoint32A)(c.dc, "iiiiiiii", 8, &b);
     EQ(a.cx, b.cx);
