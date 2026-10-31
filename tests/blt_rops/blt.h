@@ -28,7 +28,7 @@ UDECL(BOOL, GdiGradientFill, (HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG));
     X(GetStretchBltMode) X(SetBrushOrgEx) X(GetBrushOrgEx) X(SelectClipRgn) X(CreateRectRgn) \
     X(SetMapMode) X(SetWindowExtEx) X(SetViewportExtEx) X(SetViewportOrgEx) X(SetWindowOrgEx) X(SetLayout) X(GetLayout) \
     X(GdiFlush) X(GetPixel) X(SetPixel) X(SetBitmapBits) X(GetBitmapBits) X(GetDeviceCaps) X(SaveDC) X(RestoreDC) \
-    X(GetCurrentObject) X(GetObjectA) X(CombineRgn) X(CreateHatchBrush) X(GetStockObject) X(GetObjectType) X(SetBkMode) X(SetROP2) X(CreateDIBitmap) X(GetDIBits)
+    X(GetCurrentObject) X(GetObjectA) X(CombineRgn) X(CreateHatchBrush) X(GetLayout) X(GetDC) X(ReleaseDC) X(GetGuiResources) X(SetDIBColorTable) X(GetStockObject) X(GetObjectType) X(SetBkMode) X(SetROP2) X(CreateDIBitmap) X(GetDIBits)
 #define BLT_DECL(n) static __typeof__(&n) p##n;
 BLT_FUNCS(BLT_DECL)
 static GdiTransparentBlt_pfn pGdiTransparentBlt;
