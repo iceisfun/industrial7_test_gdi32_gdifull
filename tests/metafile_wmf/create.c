@@ -32,7 +32,7 @@ TEST(wmf_create_handle_type) {
     CHECK(h != NULL);
     if (h) {
         DWORD t = U(GetObjectType)(h);
-        if (t != OBJ_METAFILE) t_note("GetObjectType(HMETAFILE) = %lu", t);
+        EXPECT_EQ(t, OBJ_METAFILE);
         EXPECT_EQ(((ULONG_PTR)h >> 16) & 0x7f, 0x26);
         U(DeleteMetaFile)(h);
     }
