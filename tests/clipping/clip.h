@@ -3,6 +3,11 @@
 #define CLIP_H
 #include "t.h"
 
+/* single-evaluation variant (calls with side effects are common here) */
+#undef EXPECT_EQ
+#define EXPECT_EQ(a, b) do { ULONG_PTR a_ = (ULONG_PTR)(a), b_ = (ULONG_PTR)(b); \
+    t_check(a_ == b_, __FILE__, __LINE__, #a " == " #b, "got 0x%llx want 0x%llx", (unsigned long long)a_, (unsigned long long)b_); } while (0)
+
 #ifndef RGN_COPY
 #define RGN_COPY 5
 #endif
