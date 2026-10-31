@@ -2,6 +2,7 @@
 #ifndef BLT_H
 #define BLT_H
 #include "t.h"
+#include <stdlib.h>
 
 #ifndef CAPTUREBLT
 #define CAPTUREBLT 0x40000000
