@@ -147,15 +147,17 @@ TEST(count_failed_create_no_leak) {
     DWORD a = os_gdicount();
     LOGBRUSH lb = { BS_SOLID, 0, 0 };
     for (int i = 0; i < 20; i++) {
-        U(CreateHatchBrush)(99, 0);
-        U(CreatePatternBrush)(NULL);
-        U(ExtCreatePen)(PS_COSMETIC, 5, &lb, 0, NULL);
-        U(CreateBitmap)(-1, -1, 1, 1, NULL);
-        U(CreateRectRgn)(0, 0, 1, 1) ? (void)0 : (void)0;
+        HGDIOBJ r[5];
+        r[0] = U(CreateHatchBrush)(99, 0);
+        r[1] = U(CreatePatternBrush)(NULL);
+        r[2] = U(ExtCreatePen)(PS_COSMETIC, 5, &lb, 0, NULL);
+        r[3] = U(CreateBitmap)(-1, -1, 1, 1, NULL);
+        r[4] = U(CreateRectRgn)(0, 0, 1, 1);
+        for (int j = 0; j < 5; j++) if (r[j]) DOBJ(r[j]);
     }
     DWORD b = os_gdicount();
     t_note("count after failed creates %lu -> %lu", a, b);
-    CHECK(b >= a);
+    CHECK(b == a);
 }
 TEST(count_selected_object_delete_does_not_free_early) {
     NEED_COUNTS();

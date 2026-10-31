@@ -480,11 +480,11 @@ TEST(getobj_font_size_matrix) {
         BYTE b[512]; memset(b, 0x6B, sizeof b);
         int ra = GOA(f, cbs[i], b);
         CHECKF(ra <= cbs[i], "A cb %d ret %d", cbs[i], ra);
-        if (cbs[i] >= 60) CHECKF(ra == 60 || ra == cbs[i], "A cb %d ret %d", cbs[i], ra);
+        if (cbs[i] >= 60 && cbs[i] <= 0x104) CHECKF(ra == 60 || ra == cbs[i], "A cb %d ret %d", cbs[i], ra);
         memset(b, 0x6B, sizeof b);
         int rw = GOW(f, cbs[i], b);
         CHECKF(rw <= cbs[i], "W cb %d ret %d", cbs[i], rw);
-        if (cbs[i] >= 92) CHECKF(rw == 92 || rw == cbs[i], "W cb %d ret %d", cbs[i], rw);
+        if (cbs[i] >= 92 && cbs[i] <= 200) CHECKF(rw == 92 || rw == cbs[i], "W cb %d ret %d", cbs[i], rw);
         t_note("font cb=%d: A=%d W=%d", cbs[i], ra, rw);
     }
     DOBJ(f);

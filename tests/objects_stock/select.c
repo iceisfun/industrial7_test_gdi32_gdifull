@@ -453,7 +453,9 @@ TEST(getcurrent_invalid_types) {
     for (int i = 0; i < 13; i++) {
         SET_ERR(0);
         HGDIOBJ r = U(GetCurrentObject)(dc, bad[i]);
+        DWORD e_ = GetLastError();
         CHECKF(r == NULL, "type %u -> %p", bad[i], r);
+        CHECKF(e_ == ERROR_INVALID_PARAMETER || os_wine(), "type %u err %lu", bad[i], e_);
     }
     U(DeleteDC)(dc);
 }
@@ -757,6 +759,8 @@ TEST(enumobj_complete_return_value_note) {
     struct enum_ctx c; memset(&c, 0, sizeof c); c.kind = OBJ_PEN;
     int r = U(EnumObjects)(dc, OBJ_PEN, (GOBJENUMPROC)enum_cb, (LPARAM)&c);
     t_note("full enumeration returned %d (last callback returned 1)", r);
+    CHECK(c.count >= 1);
+    CHECK(r == 1);
     U(DeleteDC)(dc);
 }
 TEST(enumobj_invalid_type) {
@@ -766,8 +770,10 @@ TEST(enumobj_invalid_type) {
         struct enum_ctx c; memset(&c, 0, sizeof c); c.kind = OBJ_PEN;
         SET_ERR(0);
         int r = U(EnumObjects)(dc, types[i], (GOBJENUMPROC)enum_cb, (LPARAM)&c);
+        DWORD e_ = GetLastError();
         t_note("EnumObjects(type %d) -> %d calls=%d err=%lu", types[i], r, c.count, GetLastError());
         CHECKF(c.count == 0, "type %d invoked callback", types[i]);
+        CHECKF((r == 0 && e_ == ERROR_INVALID_PARAMETER) || (os_wine() && r == 0), "type %d ret %d err %lu", types[i], r, e_);
     }
     U(DeleteDC)(dc);
 }
@@ -778,7 +784,7 @@ TEST(enumobj_invalid_dc) {
         SET_ERR(0);
         int r = U(EnumObjects)(bad_dcs[i], OBJ_PEN, (GOBJENUMPROC)enum_cb, (LPARAM)&c);
         t_note("EnumObjects(dc %p) -> %d calls=%d", bad_dcs[i], r, c.count);
-        (void)r;
+        CHECKF((r == 0 && c.count == 0) || os_wine(), "dc %p ret %d calls %d", bad_dcs[i], r, c.count);
     }
 }
 TEST(enumobj_screen_dc_matches_memdc) {
