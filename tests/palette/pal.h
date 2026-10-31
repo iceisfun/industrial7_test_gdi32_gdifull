@@ -116,5 +116,19 @@ static UINT dib_set_table(HDC dc, const COLORREF *c, unsigned n, unsigned start)
 static HDC pal_screen_dc(void) { return U(GetDC) ? U(GetDC)(NULL) : NULL; }
 static void pal_release_screen_dc(HDC dc) { if (dc && U(ReleaseDC)) U(ReleaseDC)(NULL, dc); }
 
+/* single-evaluation versions (call sites often pass function calls) */
+#undef EXPECT_EQ
+#undef EXPECT_NE
+#define EXPECT_EQ(a, b) do { ULONG_PTR a_ = (ULONG_PTR)(a), b_ = (ULONG_PTR)(b); \
+    t_check(a_ == b_, __FILE__, __LINE__, #a " == " #b, "got 0x%llx want 0x%llx", (unsigned long long)a_, (unsigned long long)b_); } while (0)
+#define EXPECT_NE(a, b) do { ULONG_PTR a_ = (ULONG_PTR)(a), b_ = (ULONG_PTR)(b); \
+    t_check(a_ != b_, __FILE__, __LINE__, #a " != " #b, "got 0x%llx", (unsigned long long)a_); } while (0)
+
+static void dib_clear_table(HDC dc) {
+    RGBQUAD q[256];
+    memset(q, 0, sizeof q);
+    U(SetDIBColorTable)(dc, 0, 256, q);
+}
+
 #define PAL_BOGUS_HANDLE ((HANDLE)(ULONG_PTR)0x7fff1234)
 #endif
