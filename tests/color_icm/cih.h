@@ -14,6 +14,9 @@
 #define CI_LCSW_SIZE              588u
 #define CI_LCSA_SIZE              328u
 #define CI_STOCK_COLORSPACE       20
+#ifndef MWT_SET
+#define MWT_SET 4
+#endif
 
 typedef char ci_assert_w[(sizeof(LOGCOLORSPACEW) == 588) ? 1 : -1];
 typedef char ci_assert_a[(sizeof(LOGCOLORSPACEA) == 328) ? 1 : -1];
