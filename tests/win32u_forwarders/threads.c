@@ -357,7 +357,7 @@ TEST(thr_screen_dc_get_release)
 }
 
 /* ---- DC usage hand-off: a DC made on one thread is usable on another ---- */
-typedef struct { HDC dc; HBITMAP bm; void *bits; } hand_t;
+typedef struct { HDC dc; HBITMAP bm; void *bits; HGDIOBJ old; } hand_t;
 static DWORD WINAPI hand_creator(LPVOID p)
 {
     tctx_t *c = (tctx_t *)p; hand_t *h = (hand_t *)c->arg;
@@ -366,7 +366,8 @@ static DWORD WINAPI hand_creator(LPVOID p)
     bi.bmiHeader.biSize = sizeof bi.bmiHeader; bi.bmiHeader.biWidth = 8; bi.bmiHeader.biHeight = -8;
     bi.bmiHeader.biPlanes = 1; bi.bmiHeader.biBitCount = 32;
     h->bm = p_CreateDIBSection(NULL, &bi, DIB_RGB_COLORS, &h->bits, NULL, 0);
-    if (!h->dc || !h->bm || !p_SelectObject(h->dc, h->bm)) c->fail++;
+    h->old = (h->dc && h->bm) ? p_SelectObject(h->dc, h->bm) : NULL;
+    if (!h->old) c->fail++;
     return 0;
 }
 static DWORD WINAPI hand_user(LPVOID p)
@@ -388,7 +389,7 @@ TEST(thr_dc_handoff_between_threads)
     CHECK(run_threads(1, hand_user, &b));
     t_note("DC created on an exited thread used from another: failures=%ld", b.fail);
     if (h.bits) CHECK((((DWORD *)h.bits)[3 * 8 + 2] & 0xFFFFFF) == ((50u << 0) | (100u << 8) | (200u << 16)) || b.fail != 0);
-    if (h.dc && h.bm) { p_SelectObject(h.dc, p_GetStockObject(OBJ_BITMAP)); }
+    if (h.dc && h.old) p_SelectObject(h.dc, h.old);
     if (h.dc) p_DeleteDC(h.dc);
     if (h.bm) p_DeleteObject(h.bm);
 }
