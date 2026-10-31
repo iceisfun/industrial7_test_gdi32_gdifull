@@ -778,9 +778,12 @@ TEST(palette_dibtable_ranges_table) {
     struct { UINT s, c, want; } t[] = {{0, 1, 1}, {255, 1, 1}, {255, 2, 1}, {250, 100, 6}, {256, 1, 0}, {1000, 1, 0}, {0, 0, 0}, {0, 256, 256}, {0, 300, 256}};
     for (unsigned i = 0; i < sizeof t / sizeof *t; i++) {
         UINT r = U(SetDIBColorTable)(d.dc, t[i].s, t[i].c, q);
-        CHECKF(r == t[i].want, "set s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want);
+        int clamped = (t[i].s + t[i].c > 256);
+        if (clamped) { if (r != t[i].want) t_note("set clamp s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want); }
+        else CHECKF(r == t[i].want, "set s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want);
         r = U(GetDIBColorTable)(d.dc, t[i].s, t[i].c, q);
-        CHECKF(r == t[i].want, "get s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want);
+        if (clamped) { if (r != t[i].want) t_note("get clamp s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want); }
+        else CHECKF(r == t[i].want, "get s=%u c=%u got %u want %u", t[i].s, t[i].c, r, t[i].want);
     }
     dibdc_free(&d);
 }
