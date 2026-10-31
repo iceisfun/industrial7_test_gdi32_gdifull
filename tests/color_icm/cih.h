@@ -25,6 +25,8 @@ static int ci_wine(void) {
 /* Wine stubs color spaces/ICM; skip those tests there unless CI_RUN_ALL is set. Never skips on Windows. */
 static int ci_stubbed(void) { return ci_wine() && !getenv("CI_RUN_ALL"); }
 #define CI_NOWINE() do { if (ci_stubbed()) { t_skip("wine stubs color spaces"); return; } } while (0)
+/* For calls wine aborts on (unimplemented stubs): always skipped there. */
+#define CI_NOWINE_ABORT() do { if (ci_wine()) { t_skip("unimplemented under wine"); return; } } while (0)
 static int ci_gdi_count(void) {
     if (!U(GetGuiResources) || ci_wine()) return -1;
     return (int)U(GetGuiResources)(GetCurrentProcess(), 0 /* GR_GDIOBJECTS */);

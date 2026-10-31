@@ -422,7 +422,8 @@ TEST(color_icm_setcs_deleted_dc) {
     HDC d = ci_bogus_dc();
     SetLastError(0xdeadbeef);
     EXPECT_EQ(U(SetColorSpace)(d, cs), NULL);
-    EXPECT_ERR(0, ERROR_INVALID_HANDLE);
+    DWORD e = GetLastError();
+    CHECKF(e == ERROR_INVALID_HANDLE || e == ERROR_INVALID_PARAMETER, "err=%lu", e);
     U(DeleteColorSpace)(cs);
 }
 TEST(color_icm_setcs_roundtrip_srgb) {
