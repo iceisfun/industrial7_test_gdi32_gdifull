@@ -442,8 +442,10 @@ TEST(color_icm_setcs_roundtrip_srgb) {
         EXPECT_EQ(U(GetColorSpace)(m.dc), cs);
         EXPECT_EQ(U(GetCurrentObject)(m.dc, OBJ_COLORSPACE), cs);
         /* setting the same space returns it */
-        EXPECT_EQ(U(SetColorSpace)(m.dc, cs), cs);
-        EXPECT_EQ(U(SetColorSpace)(m.dc, def), cs);
+        HCOLORSPACE again = U(SetColorSpace)(m.dc, cs);
+        EXPECT_EQ(again, cs);
+        HCOLORSPACE back = U(SetColorSpace)(m.dc, def);
+        EXPECT_EQ(back, cs);
         EXPECT_EQ(U(GetColorSpace)(m.dc), def);
     }
     ci_mem_close(&m);
