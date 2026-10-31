@@ -291,6 +291,7 @@ TEST(clipping_dc_createcompatible_inherits_nothing) {
 /* ---- window DCs -------------------------------------------------------- */
 static HWND mkwin(DWORD style) {
     HWND w = t_make_window(NULL, style, WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, 120, 120, 200, 150, NULL);
+    if (!w) t_note("CreateWindow failed err=%lu", GetLastError());
     t_pump();
     return w;
 }
