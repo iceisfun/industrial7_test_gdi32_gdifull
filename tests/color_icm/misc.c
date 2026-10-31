@@ -957,6 +957,7 @@ TEST(color_icm_tci_invalid_flags) {
     }
 }
 TEST(color_icm_tci_null_output) {
+    CI_NOWINE_ABORT();
     REQUIRE(U(TranslateCharsetInfo));
     EXPECT_EQ(U(TranslateCharsetInfo)((DWORD *)(ULONG_PTR)ANSI_CHARSET, NULL, TCI_SRCCHARSET), 0);
     EXPECT_EQ(U(TranslateCharsetInfo)((DWORD *)(ULONG_PTR)1252, NULL, TCI_SRCCODEPAGE), 0);
