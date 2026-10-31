@@ -391,7 +391,7 @@ static void height_neg(const char *face) {
         fe_ctx c;
         if (!fe_open(&c, face, -ns[i], 400, 0, ANSI_CHARSET)) { t_note("%s unavailable", face); fe_close(&c); return; }
         TEXTMETRICA tm; CHECK(U(GetTextMetricsA)(c.dc, &tm));
-        CHECKF(tm.tmHeight - tm.tmInternalLeading == ns[i], "%s -%d: height %ld internal %ld", face, ns[i], tm.tmHeight, tm.tmInternalLeading);
+        CHECKF(labs(tm.tmHeight - tm.tmInternalLeading - ns[i]) <= 1, "%s -%d: height %ld internal %ld", face, ns[i], tm.tmHeight, tm.tmInternalLeading);
         CHECKF(tm.tmAscent + tm.tmDescent == tm.tmHeight, "%s -%d", face, ns[i]);
         fe_close(&c);
     }

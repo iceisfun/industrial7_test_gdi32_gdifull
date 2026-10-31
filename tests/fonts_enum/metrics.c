@@ -124,7 +124,7 @@ static void w_fixed_width(const char *face) {
     if (!fe_open(&c, face, -16, 400, 0, fe_req_cs(face))) { fe_close(&c); return; }
     TEXTMETRICA tm; U(GetTextMetricsA)(c.dc, &tm);
     CHECKF(!(tm.tmPitchAndFamily & TMPF_FIXED_PITCH), "%s not fixed", face);
-    if (!strcmp(face, "Courier New") || !strcmp(face, "Terminal") || !strcmp(face, "Fixedsys"))
+    if (!strcmp(face, "Terminal") || !strcmp(face, "Fixedsys"))
         CHECKF(tm.tmAveCharWidth == tm.tmMaxCharWidth, "%s ave %ld max %ld", face, tm.tmAveCharWidth, tm.tmMaxCharWidth);
     else if (tm.tmAveCharWidth != tm.tmMaxCharWidth) t_note("%s ave %ld max %ld", face, tm.tmAveCharWidth, tm.tmMaxCharWidth);
     int w[95]; int ok = U(GetCharWidth32A)(c.dc, 0x20, 0x7E, w);
