@@ -64,7 +64,15 @@ static int g9_in_module(const void *p, HMODULE m)
 {
     HMODULE h = NULL;
     if (!p || !GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)p, &h)) return 0;
-    return h == m;
+    if (h == m) return 1;
+    /* Windows 10 gdi32.dll forwards most exports (the D3DKMT stubs to win32u, the rest to gdi32full): the resolved address
+     * then lies in the forward target. */
+    if (m == t_gdi32() || m == t_gdi32full()) {
+        HMODULE fw = GetModuleHandleA("win32u.dll");
+        if (fw && h == fw) return 1;
+        if (t_gdi32full() && h == t_gdi32full()) return 1;
+    }
+    return 0;
 }
 
 static const char *const g9_xor_names[] = {

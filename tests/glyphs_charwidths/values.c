@@ -141,14 +141,25 @@ TEST(values_A_cp1252_extras_map_to_unicode)
     gc_close(&g);
 }
 
+/* GetCharWidthFloatW reports the width in 1/16 units on current Windows (verified on Windows 10 22H2: 'M' at -48 gives
+ * width/16); other implementations return pixels. Probe once per DC and scale the float back to pixels. */
+static float gc_fscale(GC *g)
+{
+    float f = -1; INT w = 0;
+    if (!U(GetCharWidthFloatW)(g->dc, 'M', 'M', &f) || !U(GetCharWidth32W)(g->dc, 'M', 'M', &w) || w < 2) return 1.0f;
+    return (fabsf(f - (float)w) > 1.5f && fabsf(f * 16.0f - (float)w) <= 1.5f) ? 16.0f : 1.0f;
+}
+
 TEST(values_float_close_to_integer_widths)
 {
     GC g; int fi, hi; UINT c; NEED_W();
     for (fi = 0; fi < GC_NFACES; fi++) for (hi = 0; hi < GC_NHEIGHTS; hi++) {
         if (!gc_open(&g, gc_faces[fi], gc_heights[hi])) continue;
+        float sc = gc_fscale(&g);
         for (c = 0x21; c <= 0x7E; c += 3) {
             float f = -1; INT w;
             CHECK(U(GetCharWidthFloatW)(g.dc, c, c, &f)); CHECK(U(GetCharWidth32W)(g.dc, c, c, &w));
+            f *= sc;
             CHECKF(fabsf(f - (float)w) <= 1.5f, "%s %d ch=%c float %f int %d", g.face, g.h, c, f, w);
         }
         gc_close(&g);
@@ -160,9 +171,11 @@ TEST(values_abcfloat_sum_equals_float_width)
     GC g; int fi, hi; UINT c; NEED_W();
     for (fi = 0; fi < 4; fi++) for (hi = 1; hi < 5; hi++) {
         if (!gc_open(&g, gc_faces[fi], gc_heights[hi])) continue;
+        float sc = gc_fscale(&g);
         for (c = 0x21; c <= 0x7E; c += 2) {
             ABCFLOAT a; float f;
             CHECK(U(GetCharABCWidthsFloatW)(g.dc, c, c, &a)); CHECK(U(GetCharWidthFloatW)(g.dc, c, c, &f));
+            f *= sc;
             CHECKF(fabsf(a.abcfA + a.abcfB + a.abcfC - f) < 0.1f, "%s %d ch=%c sum %f f %f", g.face, g.h, c, a.abcfA + a.abcfB + a.abcfC, f);
             CHECKF(a.abcfB >= 0.0f, "%s ch=%c B=%f", g.face, c, a.abcfB);
         }
